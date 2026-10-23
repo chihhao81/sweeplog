@@ -1,4 +1,5 @@
 import { splitMulti } from './options'
+import { sessionLabel } from './sessions'
 import { contractRoot } from './topstep/contracts'
 import { positionR, type Position } from './types'
 
@@ -124,9 +125,16 @@ export const WEEKDAY_ORDER = WEEKDAYS.slice(1).concat(WEEKDAYS[0])
 
 const hourFmt = new Intl.DateTimeFormat('en-US', { hour: '2-digit', hourCycle: 'h23' })
 
+export interface DimensionDef {
+  label: string
+  keys: (p: Position) => string[]
+  /** Display text for a group key, when it differs from the stored value. */
+  format?: (key: string) => string
+}
+
 export const DIMENSIONS = {
   setup: { label: 'Setup', keys: (p: Position) => (p.setup ? [p.setup] : []) },
-  session: { label: '時段', keys: (p: Position) => [p.session] },
+  session: { label: '時段', keys: (p: Position) => [p.session], format: (k: string) => sessionLabel(k) },
   weekday: {
     label: '星期',
     keys: (p: Position) => {
@@ -145,6 +153,6 @@ export const DIMENSIONS = {
     keys: (p: Position) => (p.followedPlan === true ? ['有照計畫'] : p.followedPlan === false ? ['沒照計畫'] : []),
   },
   contract: { label: '商品', keys: (p: Position) => [contractRoot(p.contractName)] },
-} as const
+} satisfies Record<string, DimensionDef>
 
 export type Dimension = keyof typeof DIMENSIONS

@@ -1,4 +1,5 @@
-import type { Order, PositionDerived, Session, Trade } from '@/lib/types'
+import { sessionOf } from '@/lib/sessions'
+import type { Order, PositionDerived, Trade } from '@/lib/types'
 import { pointValue } from './contracts'
 
 type ParsedTrade = Omit<Trade, 'accountName' | 'positionId'>
@@ -110,23 +111,4 @@ function maxConcurrent(g: ParsedTrade[]): number {
   let max = 0
   for (const e of events) max = Math.max(max, (cur += e.d))
   return max
-}
-
-const nyClock = new Intl.DateTimeFormat('en-US', {
-  timeZone: 'America/New_York',
-  hour: '2-digit',
-  minute: '2-digit',
-  hourCycle: 'h23',
-})
-
-/** Trading session of a timestamp, by New York local time. */
-export function sessionOf(iso: string): Session {
-  const [h, m] = nyClock.format(new Date(iso)).split(':').map(Number)
-  const t = h + m / 60
-  if (t >= 18 || t < 2) return 'Asia'
-  if (t < 7) return 'London'
-  if (t < 12) return 'NY AM'
-  if (t < 13.5) return 'NY Lunch'
-  if (t < 17) return 'NY PM'
-  return 'Other'
 }

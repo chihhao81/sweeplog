@@ -6,7 +6,7 @@ import type { BreakdownRow } from '@/lib/stats'
  * One row per group with an inline bar for net P&L, drawn from a shared zero
  * line so gains and losses read by direction as well as color.
  */
-export function BreakdownTable({ rows }: { rows: BreakdownRow[] }) {
+export function BreakdownTable({ rows, formatKey }: { rows: BreakdownRow[]; formatKey?: (key: string) => string }) {
   if (rows.length === 0) return <p className="py-6 text-center text-sm text-muted">沒有資料</p>
   const maxAbs = Math.max(1, ...rows.map((r) => Math.abs(r.net)))
   const hasNeg = rows.some((r) => r.net < 0)
@@ -34,7 +34,9 @@ export function BreakdownTable({ rows }: { rows: BreakdownRow[] }) {
             const left = r.net >= 0 ? zero : zero - len
             return (
               <tr key={r.key} className="border-t border-border/50">
-                <td className={cn('py-2 pr-3', r.key === '未填' && 'text-muted')}>{r.key}</td>
+                <td className={cn('py-2 pr-3 whitespace-nowrap', r.key === '未填' && 'text-muted')}>
+                  {formatKey ? formatKey(r.key) : r.key}
+                </td>
                 <td className="py-2 pr-3 text-right text-muted">{r.count}</td>
                 <td className="py-2 pr-3 text-right">{r.winRate === null ? '—' : `${Math.round(r.winRate * 100)}%`}</td>
                 <td className="py-2 pr-3 text-right text-muted">{rMultiple(r.avgR)}</td>

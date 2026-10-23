@@ -9,12 +9,12 @@ import { dayLabel, money, pnlClass, rMultiple, timeOf } from '@/lib/format'
 import { driveImageUrl } from '@/lib/image'
 import { splitMulti } from '@/lib/options'
 import { useAllScreenshots, useOptions, usePositions } from '@/lib/queries'
+import { SESSION_ORDER, sessionLabel } from '@/lib/sessions'
 import { loadConnection } from '@/lib/settings'
 import { positionR, type Position, type Screenshot } from '@/lib/types'
 import { NeedsSetup } from './TradesPage'
 
 const RESULTS = ['賺', '賠']
-const SESSIONS = ['Asia', 'London', 'NY AM', 'NY Lunch', 'NY PM']
 
 interface Filters {
   setup: string | null
@@ -102,7 +102,12 @@ export function ReviewPage() {
               <ChipSelect options={RESULTS} value={filters.result} onChange={(v) => set('result', v)} />
             </FormRow>
             <FormRow label="時段">
-              <ChipSelect options={SESSIONS} value={filters.session} onChange={(v) => set('session', v)} />
+              <ChipSelect
+                options={SESSION_ORDER.filter((s) => s !== 'Other')}
+                value={filters.session}
+                onChange={(v) => set('session', v)}
+                format={sessionLabel}
+              />
             </FormRow>
             <FormRow label="評級">
               <ChipSelect options={options.data.grades} value={filters.grade} onChange={(v) => set('grade', v)} />

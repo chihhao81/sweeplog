@@ -6,8 +6,9 @@ import { Card, EmptyState, ErrorBox, PageHeader, Spinner } from '@/components/ui
 import { cn } from '@/lib/cn'
 import { money, pnlClass, rMultiple } from '@/lib/format'
 import { usePositions } from '@/lib/queries'
+import { SESSION_ORDER } from '@/lib/sessions'
 import { loadConnection } from '@/lib/settings'
-import { breakdown, dailyNet, DIMENSIONS, equityByDay, summarize, WEEKDAY_ORDER, type Dimension } from '@/lib/stats'
+import { breakdown, dailyNet, DIMENSIONS, equityByDay, summarize, WEEKDAY_ORDER, type Dimension, type DimensionDef } from '@/lib/stats'
 import { NeedsSetup } from './TradesPage'
 
 const PERIODS = [
@@ -18,7 +19,6 @@ const PERIODS = [
 ] as const
 type PeriodId = (typeof PERIODS)[number]['id']
 
-const SESSION_ORDER = ['Asia', 'London', 'NY AM', 'NY Lunch', 'NY PM', 'Other']
 const DIM_ORDER: Partial<Record<Dimension, string[]>> = {
   session: SESSION_ORDER,
   weekday: WEEKDAY_ORDER,
@@ -114,7 +114,7 @@ export function DashboardPage() {
                     options={(Object.keys(DIMENSIONS) as Dimension[]).map((d) => ({ id: d, label: DIMENSIONS[d].label }))}
                   />
                 </div>
-                <BreakdownTable rows={rows} />
+                <BreakdownTable rows={rows} formatKey={(DIMENSIONS[dim] as DimensionDef).format} />
                 {dim === 'mistakes' && (
                   <p className="mt-2 text-xs text-muted">一筆部位有多個錯誤標籤時，會分別計入每個標籤</p>
                 )}

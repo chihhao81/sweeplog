@@ -31,10 +31,12 @@ export function ChipSelect({
   options,
   value,
   onChange,
+  format,
 }: {
   options: string[]
   value: string | null
   onChange: (v: string | null) => void
+  format?: (option: string) => string
 }) {
   // Keep a stored value visible even if it was removed from the option list.
   const all = value && !options.includes(value) ? [...options, value] : options
@@ -42,7 +44,7 @@ export function ChipSelect({
     <div className="flex flex-wrap gap-1.5">
       {all.map((o) => (
         <Chip key={o} active={o === value} onClick={() => onChange(o === value ? null : o)}>
-          {o}
+          {format ? format(o) : o}
         </Chip>
       ))}
     </div>

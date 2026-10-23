@@ -1,6 +1,7 @@
 import { Image } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { money, pnlClass, price, rMultiple, timeOf } from '@/lib/format'
+import { sessionLabel } from '@/lib/sessions'
 import { positionR, type Position } from '@/lib/types'
 
 export function SideBadge({ side }: { side: Position['side'] }) {
@@ -27,7 +28,7 @@ export function PositionRow({ p, shotCount, className }: { p: Position; shotCoun
         <div className="flex items-baseline gap-2 text-sm">
           <span className="font-medium">{p.contractName}</span>
           {p.maxSize > 1 && <span className="text-xs text-muted">×{p.maxSize}</span>}
-          <span className="hidden text-xs text-muted sm:inline">{p.session}</span>
+          <span className="hidden text-xs text-muted sm:inline">{sessionLabel(p.session)}</span>
           {p.setup && <span className="truncate text-xs text-accent">{p.setup}</span>}
           {shotCount ? (
             <span className="inline-flex items-center gap-0.5 text-xs text-muted">

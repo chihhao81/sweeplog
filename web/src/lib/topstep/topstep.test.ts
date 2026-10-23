@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { contractRoot, pointValue } from './contracts'
 import { parseDuration, parseExport, toDay, toIso } from './parse'
-import { buildPositions, sessionOf } from './positions'
+import { sessionLabel, sessionOf } from '@/lib/sessions'
+import { buildPositions } from './positions'
 
 const TRADES_CSV = `﻿Id,ContractName,EnteredAt,ExitedAt,EntryPrice,ExitPrice,Fees,PnL,Size,Type,TradeDay,TradeDuration,Commissions
 1,MNQM6,06/18/2026 16:30:40 +08:00,06/18/2026 16:31:02 +08:00,30433.5,30431.5,0.72,-4,1,Long,06/18/2026 00:00:00 -05:00,00:00:22.1,0.5
@@ -87,5 +88,14 @@ describe('sessionOf', () => {
     expect(sessionOf('2026-06-18T21:45:00+08:00')).toBe('NY AM') // 09:45 EDT
     expect(sessionOf('2026-06-18T16:30:00+08:00')).toBe('London') // 04:30 EDT
     expect(sessionOf('2026-01-15T09:00:00+08:00')).toBe('Asia') // 20:00 EST
+    expect(sessionOf('2026-06-18T05:30:00+08:00')).toBe('Other') // 17:30 EDT
+  })
+
+  it('labels sessions with Taipei hours for the season', () => {
+    expect(sessionLabel('London', new Date('2026-07-01'))).toBe('London 14:00–19:00')
+    expect(sessionLabel('London', new Date('2026-12-01'))).toBe('London 15:00–20:00')
+    expect(sessionLabel('NY PM', new Date('2026-07-01'))).toBe('NY PM 01:30–05:00')
+    expect(sessionLabel('Asia', new Date('2026-12-01'))).toBe('Asia 07:00–15:00')
+    expect(sessionLabel('Other')).toBe('Other')
   })
 })
