@@ -41,9 +41,9 @@ export function uploadScreenshot(input: UploadInput) {
   return { ...row, positionIds: input.positionIds ?? [] }
 }
 
-/** Screenshots of one trade day, each with the positions it is linked to. */
-export function listScreenshots(date: string) {
-  const shots = readRows('Screenshots').filter((r) => r.date === date)
+/** Screenshots of one trade day (or all when no date), each with its linked positions. */
+export function listScreenshots(date?: string) {
+  const shots = readRows('Screenshots').filter((r) => !date || r.date === date)
   const ids = new Set(shots.map((s) => String(s.id)))
   const links = readRows('PositionScreenshots').filter((l) => ids.has(String(l.screenshotId)))
   return shots.map((s) => ({

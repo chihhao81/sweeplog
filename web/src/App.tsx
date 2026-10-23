@@ -5,6 +5,7 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { DayPage } from '@/pages/DayPage'
 import { ImportPage } from '@/pages/ImportPage'
 import { JournalPage } from '@/pages/JournalPage'
+import { ReviewPage } from '@/pages/ReviewPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { TradesPage } from '@/pages/TradesPage'
 
@@ -24,6 +25,7 @@ const router = createHashRouter([
       { path: 'trades', element: <TradesPage /> },
       { path: 'day/:date', element: <DayPage /> },
       { path: 'journal', element: <JournalPage /> },
+      { path: 'review', element: <ReviewPage /> },
       { path: 'import', element: <ImportPage /> },
       { path: 'settings', element: <SettingsPage /> },
     ],

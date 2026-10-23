@@ -109,9 +109,19 @@ export function useScreenshots(date: string) {
   })
 }
 
-/** Optimistically patches one day's screenshot list in the cache. */
+/** Every screenshot, for the review page. */
+export function useAllScreenshots() {
+  return useQuery({
+    queryKey: ['screenshots', 'all'],
+    queryFn: () => api.listScreenshots(),
+    enabled: loadConnection() !== null,
+  })
+}
+
+/** Optimistically patches one day's screenshot list; the all-days list refetches. */
 function patchShots(qc: ReturnType<typeof useQueryClient>, date: string, fn: (list: Screenshot[]) => Screenshot[]) {
   qc.setQueryData<Screenshot[]>(['screenshots', date], (list) => fn(list ?? []))
+  qc.invalidateQueries({ queryKey: ['screenshots', 'all'] })
 }
 
 export function useUploadScreenshot(date: string) {

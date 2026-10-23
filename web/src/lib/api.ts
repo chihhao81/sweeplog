@@ -91,7 +91,7 @@ export const api = {
     takenAt?: string
     positionIds: string[]
   }) => callApi<Screenshot>('uploadScreenshot', input),
-  listScreenshots: (date: string) => callApi<Screenshot[]>('listScreenshots', { date }),
+  listScreenshots: (date?: string) => callApi<Screenshot[]>('listScreenshots', { date }),
   updateScreenshot: (id: string, changes: { caption?: string | null; positionIds?: string[] }) =>
     callApi<{ id: string }>('updateScreenshot', { id, ...changes }),
   deleteScreenshot: (id: string) => callApi<{ id: string }>('deleteScreenshot', { id }),

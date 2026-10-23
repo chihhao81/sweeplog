@@ -1,4 +1,5 @@
 import { getToken, isAuthorized, rotateToken } from './auth'
+import { SHEETS, type SheetName } from './schema'
 import { ensureSheets, readRows, spreadsheet, upsertRows, type Row } from './sheets'
 import {
   checkDriveAccess,
@@ -9,7 +10,7 @@ import {
   type UploadInput,
 } from './screenshots'
 
-const VERSION = '0.4.0'
+const VERSION = '0.5.0'
 
 type Handler = (payload: any) => unknown
 
@@ -36,7 +37,7 @@ const ACTIONS: Record<string, Handler> = {
     readRows('Positions').filter((r) => inRange(String(r.tradeDay), p.from, p.to)),
 
   uploadScreenshot: (p: UploadInput) => withLock(() => uploadScreenshot(p)),
-  listScreenshots: (p: { date: string }) => listScreenshots(p.date),
+  listScreenshots: (p: { date?: string }) => listScreenshots(p.date),
   updateScreenshot: (p: { id: string; caption?: string | null; positionIds?: string[] }) =>
     withLock(() => updateScreenshot(p)),
   deleteScreenshot: (p: { id: string }) => withLock(() => deleteScreenshot(p.id)),
@@ -62,6 +63,13 @@ const ACTIONS: Record<string, Handler> = {
       upsertRows('DailyJournal', [row])
       return row
     }),
+
+  /** Every sheet's rows, for a JSON backup. Read-only. */
+  exportAll: () => {
+    const data: Record<string, Row[]> = {}
+    for (const name of Object.keys(SHEETS) as SheetName[]) data[name] = readRows(name)
+    return { version: VERSION, exportedAt: new Date().toISOString(), sheets: data }
+  },
 
   /** Dropdown options, stored as JSON under Settings key "options". Null until first saved. */
   getOptions: () => {

@@ -1,6 +1,7 @@
 import {
   BookOpen,
   CandlestickChart,
+  Images,
   LayoutDashboard,
   ListOrdered,
   Settings,
@@ -20,6 +21,7 @@ const NAV: NavItem[] = [
   { to: '/', label: '總覽', icon: LayoutDashboard },
   { to: '/trades', label: '交易', icon: ListOrdered },
   { to: '/journal', label: '日誌', icon: BookOpen },
+  { to: '/review', label: '覆盤', icon: Images },
   { to: '/import', label: '匯入', icon: Upload },
   { to: '/settings', label: '設定', icon: Settings },
 ]
@@ -66,7 +68,7 @@ export function Layout() {
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-10 grid grid-cols-5 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-10 grid grid-cols-6 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {NAV.map((item) => (
           <NavLink
             key={item.to}
