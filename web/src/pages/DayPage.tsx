@@ -2,12 +2,14 @@ import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router'
+import { DailyJournalCard } from '@/components/DailyJournalCard'
+import { PositionJournal } from '@/components/PositionJournal'
 import { PositionRow } from '@/components/PositionRow'
 import { Card, EmptyState, ErrorBox, Spinner } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { dayLabel, duration, money, pnlClass, price, timeOf } from '@/lib/format'
-import { groupByDay, useDayTrades, usePositions } from '@/lib/queries'
-import { loadConnection } from '@/lib/settings'
+import { groupByDay, useDayTrades, useOptions, usePositions } from '@/lib/queries'
+import { lastAccount, loadConnection } from '@/lib/settings'
 import type { Trade } from '@/lib/types'
 import { NeedsSetup } from './TradesPage'
 
@@ -15,6 +17,7 @@ export function DayPage() {
   const { date = '' } = useParams()
   const positions = usePositions()
   const trades = useDayTrades(date)
+  const options = useOptions()
   const [open, setOpen] = useState<string | null>(null)
 
   const days = useMemo(() => groupByDay(positions.data ?? []), [positions.data])
@@ -54,51 +57,62 @@ export function DayPage() {
 
       {positions.isPending && <Spinner />}
       {positions.isError && <ErrorBox message={positions.error.message} />}
-      {positions.isSuccess && !day && <EmptyState title="這天沒有交易" />}
 
-      {day && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Tile label="淨損益" value={money(day.net)} className={pnlClass(day.net)} />
-            <Tile label="毛損益" value={money(gross)} />
-            <Tile label="手續費" value={money(-costs)} />
-            <Tile label="勝 / 負" value={`${day.wins} / ${day.losses}`} />
-          </div>
+      <div className="space-y-4">
+        {positions.isSuccess && !day && <EmptyState title="這天沒有交易" hint="仍然可以寫當日日誌" />}
 
-          <Card className="overflow-hidden p-0 md:p-0">
-            {[...day.positions].reverse().map((p) => {
-              const expanded = open === p.positionId
-              const fills = fillsByPosition.get(p.positionId) ?? []
-              return (
-                <div key={p.positionId} className="border-b border-border/50 last:border-0">
-                  <button
-                    type="button"
-                    className="flex w-full items-center text-left hover:bg-surface-2/60"
-                    onClick={() => setOpen(expanded ? null : p.positionId)}
-                    aria-expanded={expanded}
-                  >
-                    <PositionRow p={p} className="flex-1 pr-1" />
-                    <ChevronDown
-                      className={cn('mr-3 size-4 shrink-0 text-muted transition-transform', expanded && 'rotate-180')}
-                    />
-                  </button>
-                  {expanded && (
-                    <div className="bg-bg/60 px-4 pb-3">
-                      {trades.isPending ? (
-                        <p className="py-2 text-xs text-muted">載入成交明細…</p>
-                      ) : (
-                        <Fills fills={fills} />
-                      )}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </Card>
+        {day && (
+          <>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <Tile label="淨損益" value={money(day.net)} className={pnlClass(day.net)} />
+              <Tile label="毛損益" value={money(gross)} />
+              <Tile label="手續費" value={money(-costs)} />
+              <Tile label="勝 / 負" value={`${day.wins} / ${day.losses}`} />
+            </div>
 
-          <p className="text-center text-xs text-muted">手動欄位、日誌與截圖會在之後的版本加入這一頁</p>
-        </div>
-      )}
+            <Card className="overflow-hidden p-0 md:p-0">
+              {[...day.positions].reverse().map((p) => {
+                const expanded = open === p.positionId
+                const fills = fillsByPosition.get(p.positionId) ?? []
+                return (
+                  <div key={p.positionId} className="border-b border-border/50 last:border-0">
+                    <button
+                      type="button"
+                      className="flex w-full items-center text-left hover:bg-surface-2/60"
+                      onClick={() => setOpen(expanded ? null : p.positionId)}
+                      aria-expanded={expanded}
+                    >
+                      <PositionRow p={p} className="flex-1 pr-1" />
+                      <ChevronDown
+                        className={cn('mr-3 size-4 shrink-0 text-muted transition-transform', expanded && 'rotate-180')}
+                      />
+                    </button>
+                    {expanded && (
+                      <div className="border-t border-border/50 bg-bg/60 px-4 pb-4">
+                        <details className="pt-2 text-xs">
+                          <summary className="cursor-pointer text-muted hover:text-fg">
+                            成交明細（{p.tradeCount} 筆）
+                          </summary>
+                          {trades.isPending ? (
+                            <p className="py-2 text-muted">載入中…</p>
+                          ) : (
+                            <Fills fills={fills} />
+                          )}
+                        </details>
+                        {options.data && <PositionJournal position={p} options={options.data} />}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </Card>
+          </>
+        )}
+
+        {positions.isSuccess && (
+          <DailyJournalCard date={date} accountName={day?.positions[0]?.accountName ?? lastAccount()} />
+        )}
+      </div>
     </>
   )
 }

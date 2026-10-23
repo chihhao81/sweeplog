@@ -1,7 +1,7 @@
 import { getToken, isAuthorized, rotateToken } from './auth'
 import { ensureSheets, readRows, spreadsheet, upsertRows, type Row } from './sheets'
 
-const VERSION = '0.2.0'
+const VERSION = '0.3.0'
 
 type Handler = (payload: any) => unknown
 
@@ -26,6 +26,40 @@ const ACTIONS: Record<string, Handler> = {
 
   listPositions: (p: { from?: string; to?: string }) =>
     readRows('Positions').filter((r) => inRange(String(r.tradeDay), p.from, p.to)),
+
+  /** Saves the journal fields of one position. Import-derived columns are not writable here. */
+  updatePosition: (p: { positionId: string; fields: Row }) =>
+    withLock(() => {
+      const fields = pick(p.fields, MANUAL_POSITION_FIELDS)
+      const row: Row = { ...fields, positionId: p.positionId, updatedAt: new Date().toISOString() }
+      upsertRows('Positions', [row], { insert: false })
+      return row
+    }),
+
+  listJournal: (p: { from?: string; to?: string }) =>
+    readRows('DailyJournal').filter((r) => inRange(String(r.date), p.from, p.to)),
+
+  saveJournal: (p: { entry: Row }) =>
+    withLock(() => {
+      const date = String(p.entry.date ?? '')
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('日誌缺少日期')
+      const accountName = String(p.entry.accountName ?? '')
+      const row: Row = { ...p.entry, id: `${date}|${accountName}`, updatedAt: new Date().toISOString() }
+      upsertRows('DailyJournal', [row])
+      return row
+    }),
+
+  /** Dropdown options, stored as JSON under Settings key "options". Null until first saved. */
+  getOptions: () => {
+    const row = readRows('Settings').find((r) => r.key === 'options')
+    return row?.value ? JSON.parse(String(row.value)) : null
+  },
+
+  saveOptions: (p: { options: unknown }) =>
+    withLock(() => {
+      upsertRows('Settings', [{ key: 'options', value: JSON.stringify(p.options) }])
+      return p.options
+    }),
 
   listTrades: (p: { tradeDay?: string; positionIds?: string[] }) => {
     const ids = p.positionIds ? new Set(p.positionIds) : null
@@ -91,6 +125,28 @@ function json(body: unknown) {
   return ContentService.createTextOutput(JSON.stringify(body)).setMimeType(
     ContentService.MimeType.JSON,
   )
+}
+
+const MANUAL_POSITION_FIELDS = [
+  'riskOverride',
+  'setup',
+  'liquiditySwept',
+  'htfBias',
+  'entryTimeframe',
+  'entryTrigger',
+  'followedPlan',
+  'mistakes',
+  'emotionBefore',
+  'emotionAfter',
+  'grade',
+  'notes',
+  'lesson',
+]
+
+function pick(row: Row, keys: string[]): Row {
+  const out: Row = {}
+  for (const k of keys) if (k in row) out[k] = row[k]
+  return out
 }
 
 function inRange(day: string, from?: string, to?: string) {

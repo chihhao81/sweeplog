@@ -86,7 +86,24 @@ export interface PositionManual {
   lesson: string | null
 }
 
-export type Position = PositionDerived & Partial<PositionManual>
+export type Position = PositionDerived & Partial<PositionManual> & { updatedAt?: string }
+
+export interface JournalEntry {
+  id?: string
+  date: string
+  accountName: string
+  bias: string | null
+  keyLevels: string | null
+  newsEvents: string | null
+  plan: string | null
+  sleep: number | null
+  energy: number | null
+  followedDailyRules: boolean | null
+  wentWell: string | null
+  wentWrong: string | null
+  tomorrow: string | null
+  updatedAt?: string
+}
 
 export function positionRisk(p: Position): number | null {
   return p.riskOverride ?? p.autoRisk ?? null

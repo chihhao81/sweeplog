@@ -101,7 +101,8 @@ export interface UpsertResult {
  * Inserts or updates rows by the sheet's key column. Only the fields present
  * on an incoming row are written, so imports never clobber manual columns.
  */
-export function upsertRows(name: SheetName, rows: Row[]): UpsertResult {
+export function upsertRows(name: SheetName, rows: Row[], opts: { insert?: boolean } = {}): UpsertResult {
+  const allowInsert = opts.insert ?? true
   const result: UpsertResult = { inserted: 0, updated: 0, unchanged: 0 }
   if (rows.length === 0) return result
 
@@ -125,6 +126,7 @@ export function upsertRows(name: SheetName, rows: Row[]): UpsertResult {
     const key = row[keyField]
     if (key === null || key === undefined || key === '') continue
     const idx = rowByKey.get(String(key))
+    if (idx === undefined && !allowInsert) throw new Error(`${name} 找不到 ${keyField}=${key}`)
     const target = idx === undefined ? new Array<Cell>(width).fill('') : existing[idx]
     let changed = false
 

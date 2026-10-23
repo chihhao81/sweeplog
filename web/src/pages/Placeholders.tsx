@@ -10,12 +10,3 @@ export function DashboardPage() {
     </>
   )
 }
-
-export function JournalPage() {
-  return (
-    <>
-      <PageHeader title="日誌" description="盤前計畫與盤後檢討" />
-      <EmptyState title="還沒有日誌" hint="Phase 3 開放" />
-    </>
-  )
-}

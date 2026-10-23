@@ -1,5 +1,6 @@
 import { loadConnection, type Connection } from './settings'
-import type { Order, Position, PositionDerived, Trade } from './types'
+import type { JournalOptions } from './options'
+import type { JournalEntry, Order, Position, PositionDerived, PositionManual, Trade } from './types'
 
 // Mirrors gas/src/types.ts. Keep the two in sync.
 export interface ApiOk<T> {
@@ -77,4 +78,11 @@ export const api = {
     callApi<Position[]>('listPositions', range),
   listTrades: (filter: { tradeDay?: string; positionIds?: string[] }) =>
     callApi<Trade[]>('listTrades', filter),
+  updatePosition: (positionId: string, fields: Partial<PositionManual>) =>
+    callApi<Partial<Position>>('updatePosition', { positionId, fields }),
+  listJournal: (range: { from?: string; to?: string } = {}) =>
+    callApi<JournalEntry[]>('listJournal', range),
+  saveJournal: (entry: JournalEntry) => callApi<JournalEntry>('saveJournal', { entry }),
+  getOptions: () => callApi<Partial<JournalOptions> | null>('getOptions'),
+  saveOptions: (options: JournalOptions) => callApi<JournalOptions>('saveOptions', { options }),
 }

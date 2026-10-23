@@ -8,9 +8,8 @@ import { cn } from '@/lib/cn'
 import { dayLabel, money, pnlClass } from '@/lib/format'
 import { parseExport, type ParsedExport } from '@/lib/topstep/parse'
 import { buildPositions } from '@/lib/topstep/positions'
+import { lastAccount, rememberAccount } from '@/lib/settings'
 import type { PositionDerived } from '@/lib/types'
-
-const ACCOUNT_KEY = 'sweeplog.lastAccount'
 
 interface LoadedFile {
   name: string
@@ -21,7 +20,7 @@ export function ImportPage() {
   const queryClient = useQueryClient()
   const [files, setFiles] = useState<LoadedFile[]>([])
   const [errors, setErrors] = useState<string[]>([])
-  const [account, setAccount] = useState(() => readLastAccount())
+  const [account, setAccount] = useState(lastAccount)
   const [dragging, setDragging] = useState(false)
 
   const existing = useQuery({
@@ -51,7 +50,7 @@ export function ImportPage() {
   const importMutation = useMutation({
     mutationFn: () => api.importData(toPayload(preview, Boolean(ordersFile))),
     onSuccess: () => {
-      localStorage.setItem(ACCOUNT_KEY, account.trim())
+      rememberAccount(account.trim())
       queryClient.invalidateQueries({ queryKey: ['positions'] })
       queryClient.invalidateQueries({ queryKey: ['trades'] })
       queryClient.invalidateQueries({ queryKey: ['existingIds'] })
@@ -279,12 +278,4 @@ function dateRange(positions: PositionDerived[]): string {
   const days = positions.map((p) => p.tradeDay).sort()
   const fmt = (d: string) => d.slice(5).replace('-', '/')
   return days[0] === days.at(-1) ? fmt(days[0]) : `${fmt(days[0])}–${fmt(days.at(-1)!)}`
-}
-
-function readLastAccount(): string {
-  try {
-    return localStorage.getItem(ACCOUNT_KEY) ?? ''
-  } catch {
-    return ''
-  }
 }

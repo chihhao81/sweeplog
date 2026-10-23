@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { CheckCircle2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
+import { OptionsEditor } from '@/components/OptionsEditor'
 import { Button, Card, ErrorBox, Field, PageHeader } from '@/components/ui'
 import { api } from '@/lib/api'
 import { clearConnection, loadConnection, saveConnection } from '@/lib/settings'
@@ -117,6 +118,7 @@ export function SettingsPage() {
           )}
           {setup.isError && <ErrorBox message={setup.error.message} />}
         </Card>
+        {saved && <OptionsEditor />}
       </div>
     </>
   )
