@@ -78,7 +78,13 @@ export function TradesPage() {
                   <ChevronRight className="size-4 text-muted" />
                 </Link>
                 {[...d.positions].reverse().map((p) => (
-                  <PositionRow key={p.positionId} p={p} className="border-b border-border/50 last:border-0" />
+                  <Link
+                    key={p.positionId}
+                    to={`/day/${d.day}?open=${p.positionId}`}
+                    className="block border-b border-border/50 last:border-0 hover:bg-surface-2/60"
+                  >
+                    <PositionRow p={p} />
+                  </Link>
                 ))}
               </Card>
             ))}

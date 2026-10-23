@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router'
 import { DailyJournalCard } from '@/components/DailyJournalCard'
 import { PositionJournal } from '@/components/PositionJournal'
 import { PositionRow } from '@/components/PositionRow'
@@ -16,16 +16,19 @@ import { NeedsSetup } from './TradesPage'
 
 export function DayPage() {
   const { date = '' } = useParams()
+  // ?open=<positionId> arrives from the trades list to jump straight into editing.
+  const [params] = useSearchParams()
   // Fresh state (open position, pending upload) for each day.
-  return <DayView key={date} date={date} />
+  return <DayView key={date} date={date} initialOpen={params.get('open')} />
 }
 
-function DayView({ date }: { date: string }) {
+function DayView({ date, initialOpen }: { date: string; initialOpen: string | null }) {
   const positions = usePositions()
   const trades = useDayTrades(date)
   const options = useOptions()
   const screenshots = useScreenshots(date)
-  const [open, setOpen] = useState<string | null>(null)
+  const [open, setOpen] = useState<string | null>(initialOpen)
+  const scrolled = useRef(false)
   const [request, setRequest] = useState<UploadRequest | null>(null)
   const [viewing, setViewing] = useState<string | null>(null)
 
@@ -48,6 +51,13 @@ function DayView({ date }: { date: string }) {
     for (const s of shots) for (const id of s.positionIds) map.set(id, [...(map.get(id) ?? []), s])
     return map
   }, [shots])
+
+  // Once the list and its form render, bring the position opened via ?open= into view.
+  useEffect(() => {
+    if (scrolled.current || !initialOpen || !day || !options.data) return
+    scrolled.current = true
+    document.getElementById(`pos-${initialOpen}`)?.scrollIntoView({ block: 'start' })
+  }, [day, initialOpen, options.data])
 
   if (!loadConnection()) return <NeedsSetup />
 
@@ -91,7 +101,7 @@ function DayView({ date }: { date: string }) {
                 const expanded = open === p.positionId
                 const fills = fillsByPosition.get(p.positionId) ?? []
                 return (
-                  <div key={p.positionId} className="border-b border-border/50 last:border-0">
+                  <div key={p.positionId} id={`pos-${p.positionId}`} className="scroll-mt-16 border-b border-border/50 last:border-0">
                     <button
                       type="button"
                       className="flex w-full items-center text-left hover:bg-surface-2/60"
