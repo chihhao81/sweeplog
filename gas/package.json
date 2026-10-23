@@ -1,0 +1,20 @@
+{
+  "name": "sweeplog-gas",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Google Apps Script backend for SweepLog",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && node build.mjs",
+    "push": "npm run build && clasp push --force",
+    "deploy": "npm run push && node deploy.mjs",
+    "open": "clasp open-script"
+  },
+  "devDependencies": {
+    "@google/clasp": "^3.4.1",
+    "@types/google-apps-script": "^2.0.13",
+    "esbuild": "^0.28.2",
+    "typescript": "~6.0.3"
+  }
+}

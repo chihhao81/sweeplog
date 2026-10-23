@@ -1,0 +1,55 @@
+import { loadConnection, type Connection } from './settings'
+
+// Mirrors gas/src/types.ts. Keep the two in sync.
+export interface ApiOk<T> {
+  ok: true
+  data: T
+}
+export interface ApiErr {
+  ok: false
+  error: string
+}
+export type ApiResponse<T> = ApiOk<T> | ApiErr
+
+export interface PingResult {
+  version: string
+  spreadsheetName: string
+  sheets: string[]
+  serverTime: string
+}
+
+export interface SetupResult {
+  created: string[]
+  existing: string[]
+}
+
+export class ApiError extends Error {}
+
+/**
+ * Calls the GAS web app. Uses text/plain so the browser sends a "simple"
+ * request with no CORS preflight, which Apps Script cannot answer.
+ */
+export async function callApi<T>(
+  action: string,
+  payload: unknown = {},
+  conn: Connection | null = loadConnection(),
+): Promise<T> {
+  if (!conn) throw new ApiError('尚未設定 GAS 連線，請到「設定」頁填寫')
+
+  const res = await fetch(conn.apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action, token: conn.token, payload }),
+    redirect: 'follow',
+  })
+  if (!res.ok) throw new ApiError(`HTTP ${res.status}`)
+
+  const body = (await res.json()) as ApiResponse<T>
+  if (!body.ok) throw new ApiError(body.error)
+  return body.data
+}
+
+export const api = {
+  ping: (conn?: Connection) => callApi<PingResult>('ping', {}, conn),
+  setup: () => callApi<SetupResult>('setup'),
+}

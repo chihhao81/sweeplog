@@ -1,0 +1,9 @@
+node_modules
+dist
+*.local
+*.log
+.DS_Store
+
+# GAS: per-user clasp binding and deployment state
+gas/.clasp.json
+gas/.deployment.json

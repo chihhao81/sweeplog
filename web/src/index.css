@@ -1,0 +1,39 @@
+@import 'tailwindcss';
+
+/* Dark-only palette. Semantic names so components never hardcode hex values. */
+@theme {
+  --color-bg: #0b0d12;
+  --color-surface: #12151c;
+  --color-surface-2: #191d27;
+  --color-border: #262b38;
+  --color-fg: #e6e8ee;
+  --color-muted: #8a91a3;
+  --color-accent: #5b8cff;
+  --color-accent-fg: #0b0d12;
+  --color-profit: #2fbf71;
+  --color-loss: #f0596b;
+  --color-warn: #f2b84b;
+
+  --font-sans: 'Inter', 'Noto Sans TC', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  @apply bg-bg text-fg font-sans antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Numbers line up in tables and stat tiles */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
