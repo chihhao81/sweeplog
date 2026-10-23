@@ -41,14 +41,29 @@ const clock = (h: number) => {
   return `${String(Math.floor(n)).padStart(2, '0')}:${n % 1 ? '30' : '00'}`
 }
 
+function taipeiWindow(session: string, ahead: number): string | null {
+  const w = WINDOWS.find((x) => x.session === session)
+  return w ? `${clock(w.start + ahead)}–${clock(w.end + ahead)}` : null
+}
+
 /**
- * "London 14:00–19:00": the session with its Taipei-time window. The window
- * follows US daylight saving as of `at` (today by default), so it shifts by an
- * hour each March and November.
+ * "London 14:00–19:00": the session with its Taipei-time window as of `at`.
+ * The window follows US daylight saving, so pass the trade's own time to get
+ * the hours it was actually traded in.
  */
 export function sessionLabel(session: string, at: Date = new Date()): string {
-  const w = WINDOWS.find((x) => x.session === session)
-  if (!w) return session
-  const d = taipeiAheadOfNy(at)
-  return `${session} ${clock(w.start + d)}–${clock(w.end + d)}`
+  const range = taipeiWindow(session, taipeiAheadOfNy(at))
+  return range ? `${session} ${range}` : session
+}
+
+/**
+ * Label for a group of trades. When the group spans both US summer and winter
+ * time, both Taipei windows are shown: "London 14:00–19:00（冬令 15:00–20:00）".
+ */
+export function sessionLabelAcross(session: string, times: Date[]): string {
+  const aheads = new Set(times.map(taipeiAheadOfNy))
+  if (aheads.size <= 1) return sessionLabel(session, times[0])
+  const summer = taipeiWindow(session, 12)
+  const winter = taipeiWindow(session, 13)
+  return summer && winter ? `${session} ${summer}（冬令 ${winter}）` : session
 }

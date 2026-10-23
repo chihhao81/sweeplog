@@ -9,7 +9,7 @@ import { dayLabel, money, pnlClass, rMultiple, timeOf } from '@/lib/format'
 import { driveImageUrl } from '@/lib/image'
 import { splitMulti } from '@/lib/options'
 import { useAllScreenshots, useOptions, usePositions } from '@/lib/queries'
-import { SESSION_ORDER, sessionLabel } from '@/lib/sessions'
+import { SESSION_ORDER, sessionLabelAcross } from '@/lib/sessions'
 import { loadConnection } from '@/lib/settings'
 import { positionR, type Position, type Screenshot } from '@/lib/types'
 import { NeedsSetup } from './TradesPage'
@@ -75,6 +75,11 @@ export function ReviewPage() {
     setFilters((f) => ({ ...f, [k]: v }))
     setViewing(null)
   }
+  const sessionChip = (s: string) =>
+    sessionLabelAcross(
+      s,
+      (positions.data ?? []).filter((p) => p.session === s).map((p) => new Date(p.openedAt)),
+    )
   const isHidden = (id: string) => blind && !revealed.has(id)
   const reveal = (id: string) => setRevealed((s) => new Set(s).add(id))
 
@@ -106,7 +111,7 @@ export function ReviewPage() {
                 options={SESSION_ORDER.filter((s) => s !== 'Other')}
                 value={filters.session}
                 onChange={(v) => set('session', v)}
-                format={sessionLabel}
+                format={sessionChip}
               />
             </FormRow>
             <FormRow label="評級">

@@ -8,6 +8,7 @@ import { money, pnlClass, rMultiple } from '@/lib/format'
 import { usePositions } from '@/lib/queries'
 import { SESSION_ORDER } from '@/lib/sessions'
 import { loadConnection } from '@/lib/settings'
+import type { Position } from '@/lib/types'
 import { breakdown, dailyNet, DIMENSIONS, equityByDay, summarize, WEEKDAY_ORDER, type Dimension, type DimensionDef } from '@/lib/stats'
 import { NeedsSetup } from './TradesPage'
 
@@ -114,7 +115,7 @@ export function DashboardPage() {
                     options={(Object.keys(DIMENSIONS) as Dimension[]).map((d) => ({ id: d, label: DIMENSIONS[d].label }))}
                   />
                 </div>
-                <BreakdownTable rows={rows} formatKey={(DIMENSIONS[dim] as DimensionDef).format} />
+                <BreakdownTable rows={rows} formatKey={groupFormatter(DIMENSIONS[dim], filtered)} />
                 {dim === 'mistakes' && (
                   <p className="mt-2 text-xs text-muted">一筆部位有多個錯誤標籤時，會分別計入每個標籤</p>
                 )}
@@ -164,6 +165,11 @@ function Segmented<T extends string>({
       ))}
     </div>
   )
+}
+
+function groupFormatter(def: DimensionDef, positions: Position[]) {
+  const format = def.format
+  return format ? (key: string) => format(key, positions) : undefined
 }
 
 function pct(v: number | null): string {

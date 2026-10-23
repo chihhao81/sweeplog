@@ -1,5 +1,5 @@
 import { splitMulti } from './options'
-import { sessionLabel } from './sessions'
+import { sessionLabelAcross } from './sessions'
 import { contractRoot } from './topstep/contracts'
 import { positionR, type Position } from './types'
 
@@ -128,13 +128,18 @@ const hourFmt = new Intl.DateTimeFormat('en-US', { hour: '2-digit', hourCycle: '
 export interface DimensionDef {
   label: string
   keys: (p: Position) => string[]
-  /** Display text for a group key, when it differs from the stored value. */
-  format?: (key: string) => string
+  /** Display text for a group key, given the positions being grouped. */
+  format?: (key: string, positions: Position[]) => string
 }
 
 export const DIMENSIONS = {
   setup: { label: 'Setup', keys: (p: Position) => (p.setup ? [p.setup] : []) },
-  session: { label: '時段', keys: (p: Position) => [p.session], format: (k: string) => sessionLabel(k) },
+  session: { label: '時段', keys: (p: Position) => [p.session], format: (k: string, ps: Position[]) =>
+      sessionLabelAcross(
+        k,
+        ps.filter((p) => p.session === k).map((p) => new Date(p.openedAt)),
+      ),
+  },
   weekday: {
     label: '星期',
     keys: (p: Position) => {

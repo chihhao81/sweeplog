@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { contractRoot, pointValue } from './contracts'
 import { parseDuration, parseExport, toDay, toIso } from './parse'
-import { sessionLabel, sessionOf } from '@/lib/sessions'
+import { sessionLabel, sessionLabelAcross, sessionOf } from '@/lib/sessions'
 import { buildPositions } from './positions'
 
 const TRADES_CSV = `﻿Id,ContractName,EnteredAt,ExitedAt,EntryPrice,ExitPrice,Fees,PnL,Size,Type,TradeDay,TradeDuration,Commissions
@@ -97,5 +97,15 @@ describe('sessionOf', () => {
     expect(sessionLabel('NY PM', new Date('2026-07-01'))).toBe('NY PM 01:30–05:00')
     expect(sessionLabel('Asia', new Date('2026-12-01'))).toBe('Asia 07:00–15:00')
     expect(sessionLabel('Other')).toBe('Other')
+  })
+})
+
+describe('sessionLabelAcross', () => {
+  it('shows one window within a season and both across seasons', () => {
+    const summer = new Date('2026-07-01T12:00:00Z')
+    const winter = new Date('2026-12-01T12:00:00Z')
+    expect(sessionLabelAcross('London', [summer, summer])).toBe('London 14:00–19:00')
+    expect(sessionLabelAcross('London', [winter])).toBe('London 15:00–20:00')
+    expect(sessionLabelAcross('London', [summer, winter])).toBe('London 14:00–19:00（冬令 15:00–20:00）')
   })
 })
