@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
-import { CheckCircle2, XCircle } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { Button, Card, Field, PageHeader } from '@/components/ui'
+import { Button, Card, ErrorBox, Field, PageHeader } from '@/components/ui'
 import { api } from '@/lib/api'
 import { clearConnection, loadConnection, saveConnection } from '@/lib/settings'
 
@@ -122,11 +122,3 @@ export function SettingsPage() {
   )
 }
 
-function ErrorBox({ message }: { message: string }) {
-  return (
-    <div className="mt-4 flex items-start gap-2 rounded-md border border-loss/30 bg-loss/10 p-3 text-sm text-loss">
-      <XCircle className="mt-0.5 size-4 shrink-0" />
-      <span className="break-all">{message}</span>
-    </div>
-  )
-}

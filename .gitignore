@@ -7,3 +7,7 @@ dist
 # GAS: per-user clasp binding and deployment state
 gas/.clasp.json
 gas/.deployment.json
+
+# Trading data samples, never commit
+*.csv
+samples/

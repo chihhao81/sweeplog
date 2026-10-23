@@ -1,3 +1,4 @@
+import { XCircle } from 'lucide-react'
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
@@ -24,6 +25,24 @@ export function EmptyState({ title, hint }: { title: string; hint?: string }) {
       <p className="font-medium">{title}</p>
       {hint && <p className="mt-1 text-sm text-muted">{hint}</p>}
     </Card>
+  )
+}
+
+export function ErrorBox({ message }: { message: string }) {
+  return (
+    <div className="mt-3 flex items-start gap-2 rounded-md border border-loss/30 bg-loss/10 p-3 text-sm text-loss">
+      <XCircle className="mt-0.5 size-4 shrink-0" />
+      <span className="break-all">{message}</span>
+    </div>
+  )
+}
+
+export function Spinner({ label = '載入中…' }: { label?: string }) {
+  return (
+    <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted">
+      <span className="size-4 animate-spin rounded-full border-2 border-border border-t-accent" />
+      {label}
+    </div>
   )
 }
 

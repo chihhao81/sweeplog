@@ -1,8 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createHashRouter, RouterProvider } from 'react-router'
 import { Layout } from '@/components/Layout'
-import { DashboardPage, ImportPage, JournalPage, TradesPage } from '@/pages/Placeholders'
+import { DayPage } from '@/pages/DayPage'
+import { ImportPage } from '@/pages/ImportPage'
+import { DashboardPage, JournalPage } from '@/pages/Placeholders'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { TradesPage } from '@/pages/TradesPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,6 +21,7 @@ const router = createHashRouter([
     children: [
       { index: true, element: <DashboardPage /> },
       { path: 'trades', element: <TradesPage /> },
+      { path: 'day/:date', element: <DayPage /> },
       { path: 'journal', element: <JournalPage /> },
       { path: 'import', element: <ImportPage /> },
       { path: 'settings', element: <SettingsPage /> },

@@ -1,4 +1,5 @@
 import { loadConnection, type Connection } from './settings'
+import type { Order, Position, PositionDerived, Trade } from './types'
 
 // Mirrors gas/src/types.ts. Keep the two in sync.
 export interface ApiOk<T> {
@@ -21,6 +22,24 @@ export interface PingResult {
 export interface SetupResult {
   created: string[]
   existing: string[]
+}
+
+export interface UpsertResult {
+  inserted: number
+  updated: number
+  unchanged: number
+}
+
+export interface ImportResult {
+  trades: UpsertResult
+  orders: UpsertResult
+  positions: UpsertResult
+}
+
+export interface ImportPayload {
+  trades: Trade[]
+  orders: Order[]
+  positions: Partial<PositionDerived>[]
 }
 
 export class ApiError extends Error {}
@@ -52,4 +71,10 @@ export async function callApi<T>(
 export const api = {
   ping: (conn?: Connection) => callApi<PingResult>('ping', {}, conn),
   setup: () => callApi<SetupResult>('setup'),
+  existingIds: () => callApi<{ trades: string[]; orders: string[] }>('existingIds'),
+  importData: (payload: ImportPayload) => callApi<ImportResult>('importData', payload),
+  listPositions: (range: { from?: string; to?: string } = {}) =>
+    callApi<Position[]>('listPositions', range),
+  listTrades: (filter: { tradeDay?: string; positionIds?: string[] }) =>
+    callApi<Trade[]>('listTrades', filter),
 }
