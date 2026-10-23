@@ -1,10 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createHashRouter, RouterProvider } from 'react-router'
 import { Layout } from '@/components/Layout'
+import { DashboardPage } from '@/pages/DashboardPage'
 import { DayPage } from '@/pages/DayPage'
 import { ImportPage } from '@/pages/ImportPage'
 import { JournalPage } from '@/pages/JournalPage'
-import { DashboardPage } from '@/pages/Placeholders'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { TradesPage } from '@/pages/TradesPage'
 
