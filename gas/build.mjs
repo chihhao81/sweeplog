@@ -5,7 +5,7 @@ import { copyFileSync, mkdirSync } from 'node:fs'
 import { build } from 'esbuild'
 
 // Functions callable by Apps Script (triggers, web app, editor "Run" menu).
-const ENTRY_POINTS = ['doGet', 'doPost', 'setupSheets', 'initToken', 'showToken']
+const ENTRY_POINTS = ['doGet', 'doPost', 'setupSheets', 'initToken', 'showToken', 'authorizeDrive']
 
 const footer = ENTRY_POINTS.map(
   (name) => `function ${name}() { return SweepLog.${name}.apply(null, arguments); }`,

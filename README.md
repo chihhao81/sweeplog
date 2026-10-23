@@ -31,7 +31,7 @@ npm run dev
    ```
 
 4. 推送程式碼：`npm run push`
-5. 在 Apps Script 編輯器（`npm run open`）執行 `initToken`，第一次會要求授權；執行紀錄裡的 `API_TOKEN` 就是網頁要填的 token
+5. 在 Apps Script 編輯器（`npm run open`）執行 `initToken`，第一次會要求授權；執行紀錄裡的 `API_TOKEN` 就是網頁要填的 token。接著執行 `authorizeDrive` 授權截圖用的 Drive 權限
 6. 發布 Web App：`npm run deploy`，輸出的網址填進網頁「設定」頁
 7. 在網頁「設定」頁按「建立 / 檢查工作表」
 

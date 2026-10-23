@@ -1,6 +1,6 @@
 import { loadConnection, type Connection } from './settings'
 import type { JournalOptions } from './options'
-import type { JournalEntry, Order, Position, PositionDerived, PositionManual, Trade } from './types'
+import type { JournalEntry, Order, Position, PositionDerived, PositionManual, Screenshot, Trade } from './types'
 
 // Mirrors gas/src/types.ts. Keep the two in sync.
 export interface ApiOk<T> {
@@ -83,6 +83,18 @@ export const api = {
   listJournal: (range: { from?: string; to?: string } = {}) =>
     callApi<JournalEntry[]>('listJournal', range),
   saveJournal: (entry: JournalEntry) => callApi<JournalEntry>('saveJournal', { entry }),
+  uploadScreenshot: (input: {
+    date: string
+    fileName: string
+    mimeType: string
+    base64: string
+    takenAt?: string
+    positionIds: string[]
+  }) => callApi<Screenshot>('uploadScreenshot', input),
+  listScreenshots: (date: string) => callApi<Screenshot[]>('listScreenshots', { date }),
+  updateScreenshot: (id: string, changes: { caption?: string | null; positionIds?: string[] }) =>
+    callApi<{ id: string }>('updateScreenshot', { id, ...changes }),
+  deleteScreenshot: (id: string) => callApi<{ id: string }>('deleteScreenshot', { id }),
   getOptions: () => callApi<Partial<JournalOptions> | null>('getOptions'),
   saveOptions: (options: JournalOptions) => callApi<JournalOptions>('saveOptions', { options }),
 }

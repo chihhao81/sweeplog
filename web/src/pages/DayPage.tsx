@@ -5,20 +5,29 @@ import { Link, useParams } from 'react-router'
 import { DailyJournalCard } from '@/components/DailyJournalCard'
 import { PositionJournal } from '@/components/PositionJournal'
 import { PositionRow } from '@/components/PositionRow'
+import { PositionShots, ScreenshotPanel, type UploadRequest } from '@/components/screenshots'
 import { Card, EmptyState, ErrorBox, Spinner } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { dayLabel, duration, money, pnlClass, price, timeOf } from '@/lib/format'
-import { groupByDay, useDayTrades, useOptions, usePositions } from '@/lib/queries'
+import { groupByDay, useDayTrades, useOptions, usePositions, useScreenshots } from '@/lib/queries'
 import { lastAccount, loadConnection } from '@/lib/settings'
-import type { Trade } from '@/lib/types'
+import type { Screenshot, Trade } from '@/lib/types'
 import { NeedsSetup } from './TradesPage'
 
 export function DayPage() {
   const { date = '' } = useParams()
+  // Fresh state (open position, pending upload) for each day.
+  return <DayView key={date} date={date} />
+}
+
+function DayView({ date }: { date: string }) {
   const positions = usePositions()
   const trades = useDayTrades(date)
   const options = useOptions()
+  const screenshots = useScreenshots(date)
   const [open, setOpen] = useState<string | null>(null)
+  const [request, setRequest] = useState<UploadRequest | null>(null)
+  const [viewing, setViewing] = useState<string | null>(null)
 
   const days = useMemo(() => groupByDay(positions.data ?? []), [positions.data])
   const idx = days.findIndex((d) => d.day === date)
@@ -32,6 +41,13 @@ export function DayPage() {
     for (const t of trades.data ?? []) map.set(t.positionId, [...(map.get(t.positionId) ?? []), t])
     return map
   }, [trades.data])
+
+  const shots = useMemo(() => screenshots.data ?? [], [screenshots.data])
+  const shotsByPosition = useMemo(() => {
+    const map = new Map<string, Screenshot[]>()
+    for (const s of shots) for (const id of s.positionIds) map.set(id, [...(map.get(id) ?? []), s])
+    return map
+  }, [shots])
 
   if (!loadConnection()) return <NeedsSetup />
 
@@ -82,7 +98,7 @@ export function DayPage() {
                       onClick={() => setOpen(expanded ? null : p.positionId)}
                       aria-expanded={expanded}
                     >
-                      <PositionRow p={p} className="flex-1 pr-1" />
+                      <PositionRow p={p} shotCount={shotsByPosition.get(p.positionId)?.length} className="flex-1 pr-1" />
                       <ChevronDown
                         className={cn('mr-3 size-4 shrink-0 text-muted transition-transform', expanded && 'rotate-180')}
                       />
@@ -99,6 +115,11 @@ export function DayPage() {
                             <Fills fills={fills} />
                           )}
                         </details>
+                        <PositionShots
+                          shots={shotsByPosition.get(p.positionId) ?? []}
+                          onAdd={(files) => setRequest({ files, positionIds: [p.positionId] })}
+                          onOpen={setViewing}
+                        />
                         {options.data && <PositionJournal position={p} options={options.data} />}
                       </div>
                     )}
@@ -108,6 +129,20 @@ export function DayPage() {
             </Card>
           </>
         )}
+
+        {positions.isSuccess && (
+          <ScreenshotPanel
+            date={date}
+            positions={day ? [...day.positions].reverse() : []}
+            shots={shots}
+            request={request}
+            onRequest={setRequest}
+            focusId={open}
+            viewing={viewing}
+            onView={setViewing}
+          />
+        )}
+        {screenshots.isError && <ErrorBox message={screenshots.error.message} />}
 
         {positions.isSuccess && (
           <DailyJournalCard date={date} accountName={day?.positions[0]?.accountName ?? lastAccount()} />

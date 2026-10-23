@@ -88,6 +88,17 @@ export interface PositionManual {
 
 export type Position = PositionDerived & Partial<PositionManual> & { updatedAt?: string }
 
+export interface Screenshot {
+  id: string
+  date: string
+  driveFileId: string
+  fileName: string
+  caption: string | null
+  takenAt: string | null
+  createdAt: string
+  positionIds: string[]
+}
+
 export interface JournalEntry {
   id?: string
   date: string

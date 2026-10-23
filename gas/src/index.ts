@@ -1,7 +1,15 @@
 import { getToken, isAuthorized, rotateToken } from './auth'
 import { ensureSheets, readRows, spreadsheet, upsertRows, type Row } from './sheets'
+import {
+  checkDriveAccess,
+  deleteScreenshot,
+  listScreenshots,
+  updateScreenshot,
+  uploadScreenshot,
+  type UploadInput,
+} from './screenshots'
 
-const VERSION = '0.3.0'
+const VERSION = '0.4.0'
 
 type Handler = (payload: any) => unknown
 
@@ -26,6 +34,12 @@ const ACTIONS: Record<string, Handler> = {
 
   listPositions: (p: { from?: string; to?: string }) =>
     readRows('Positions').filter((r) => inRange(String(r.tradeDay), p.from, p.to)),
+
+  uploadScreenshot: (p: UploadInput) => withLock(() => uploadScreenshot(p)),
+  listScreenshots: (p: { date: string }) => listScreenshots(p.date),
+  updateScreenshot: (p: { id: string; caption?: string | null; positionIds?: string[] }) =>
+    withLock(() => updateScreenshot(p)),
+  deleteScreenshot: (p: { id: string }) => withLock(() => deleteScreenshot(p.id)),
 
   /** Saves the journal fields of one position. Import-derived columns are not writable here. */
   updatePosition: (p: { positionId: string; fields: Row }) =>
@@ -113,6 +127,11 @@ export function setupSheets() {
 /** Generates a new API token (invalidates the old one) and logs it. */
 export function initToken() {
   Logger.log('API_TOKEN = ' + rotateToken())
+}
+
+/** Grants the Drive permission screenshots need; run from the editor after upgrading. */
+export function authorizeDrive() {
+  Logger.log('Drive OK (read + write), screenshot folder: ' + checkDriveAccess())
 }
 
 export function showToken() {

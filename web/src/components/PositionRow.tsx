@@ -1,3 +1,4 @@
+import { Image } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { money, pnlClass, price, rMultiple, timeOf } from '@/lib/format'
 import { positionR, type Position } from '@/lib/types'
@@ -16,7 +17,7 @@ export function SideBadge({ side }: { side: Position['side'] }) {
 }
 
 /** One position as a compact two-line row; works on phone and desktop. */
-export function PositionRow({ p, className }: { p: Position; className?: string }) {
+export function PositionRow({ p, shotCount, className }: { p: Position; shotCount?: number; className?: string }) {
   const r = positionR(p)
   return (
     <div className={cn('flex items-center gap-3 px-4 py-3', className)}>
@@ -28,6 +29,12 @@ export function PositionRow({ p, className }: { p: Position; className?: string 
           {p.maxSize > 1 && <span className="text-xs text-muted">×{p.maxSize}</span>}
           <span className="hidden text-xs text-muted sm:inline">{p.session}</span>
           {p.setup && <span className="truncate text-xs text-accent">{p.setup}</span>}
+          {shotCount ? (
+            <span className="inline-flex items-center gap-0.5 text-xs text-muted">
+              <Image className="size-3" />
+              {shotCount}
+            </span>
+          ) : null}
         </div>
         <div className="tabular truncate text-xs text-muted">
           {price(p.avgEntry)} → {price(p.avgExit)}

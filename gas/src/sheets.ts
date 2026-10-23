@@ -179,3 +179,20 @@ function sameCell(a: unknown, b: Cell): boolean {
   if (typeof b === 'number' && a !== '') return Number(a) === b
   return String(a) === String(b)
 }
+
+// ---- Delete ----
+
+/** Deletes every row matching the predicate. Returns how many were removed. */
+export function deleteRows(name: SheetName, match: (row: Row) => boolean): number {
+  const sheet = getSheet(name)
+  const rows = readRows(name)
+  let removed = 0
+  // Bottom-up so earlier row numbers stay valid.
+  for (let i = rows.length - 1; i >= 0; i--) {
+    if (match(rows[i])) {
+      sheet.deleteRow(i + 2)
+      removed++
+    }
+  }
+  return removed
+}
