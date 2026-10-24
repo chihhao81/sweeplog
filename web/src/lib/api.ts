@@ -2,7 +2,8 @@ import { loadConnection, type Connection } from './settings'
 import type { JournalOptions } from './options'
 import type { JournalEntry, Order, Position, PositionDerived, PositionManual, Screenshot, Trade } from './types'
 
-// Mirrors gas/src/types.ts. Keep the two in sync.
+// Response envelope of the GAS web app (gas/src/index.ts). Action names and
+// payloads below must match its ACTIONS table.
 export interface ApiOk<T> {
   ok: true
   data: T

@@ -5,6 +5,8 @@
 - `web/`：前端（Vite + React + TypeScript + Tailwind），部署到 GitHub Pages
 - `gas/`：後端（Google Apps Script，TypeScript + esbuild，用 clasp 推送）
 
+接手開發或維護前，請先讀 [AGENTS.md](AGENTS.md)：架構、資料模型、不能破壞的規則、部署流程都在裡面。
+
 ## 開發
 
 ```bash
