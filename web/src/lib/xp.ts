@@ -185,8 +185,14 @@ function hasJournalContent(e: JournalEntry): boolean {
 
 const fmtFactor = (f: number) => `×${Number(f.toFixed(2))}`
 
-export function computeProgress(positions: Position[], journal: JournalEntry[]): Progress {
-  const sorted = [...positions].sort((a, b) => a.openedAt.localeCompare(b.openedAt))
+/**
+ * Replays everything into a score. With `startDate` (YYYY-MM-DD), trade days
+ * before it are left out entirely: a fresh start without journaling the past.
+ */
+export function computeProgress(positions: Position[], journal: JournalEntry[], startDate?: string | null): Progress {
+  const sorted = positions
+    .filter((p) => !startDate || p.tradeDay >= startDate)
+    .sort((a, b) => a.openedAt.localeCompare(b.openedAt))
   const byDay = new Map<string, Position[]>()
   for (const p of sorted) byDay.set(p.tradeDay, [...(byDay.get(p.tradeDay) ?? []), p])
   const journalByDay = new Map<string, JournalEntry[]>()

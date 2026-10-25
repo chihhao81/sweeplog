@@ -10,7 +10,7 @@ import {
   type UploadInput,
 } from './screenshots'
 
-const VERSION = '0.5.0'
+const VERSION = '0.6.0'
 
 type Handler = (payload: any) => unknown
 
@@ -83,6 +83,23 @@ const ACTIONS: Record<string, Handler> = {
       return p.options
     }),
 
+  /** Single-value settings (see SETTING_KEYS), as { key: value }. */
+  getSettings: () => {
+    const out: Record<string, string | null> = {}
+    for (const r of readRows('Settings')) {
+      const key = String(r.key)
+      if (SETTING_KEYS.includes(key)) out[key] = r.value === '' || r.value == null ? null : String(r.value)
+    }
+    return out
+  },
+
+  saveSetting: (p: { key: string; value: string | null }) =>
+    withLock(() => {
+      if (!SETTING_KEYS.includes(p.key)) throw new Error(`不支援的設定：${p.key}`)
+      upsertRows('Settings', [{ key: p.key, value: p.value ?? '' }])
+      return { key: p.key, value: p.value }
+    }),
+
   listTrades: (p: { tradeDay?: string; positionIds?: string[] }) => {
     const ids = p.positionIds ? new Set(p.positionIds) : null
     return readRows('Trades').filter(
@@ -153,6 +170,9 @@ function json(body: unknown) {
     ContentService.MimeType.JSON,
   )
 }
+
+/** Keys writable through saveSetting. `xpStartDate`: XP only counts trade days from this date on. */
+const SETTING_KEYS = ['xpStartDate']
 
 const MANUAL_POSITION_FIELDS = [
   'riskOverride',

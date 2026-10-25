@@ -98,4 +98,13 @@ export const api = {
   deleteScreenshot: (id: string) => callApi<{ id: string }>('deleteScreenshot', { id }),
   getOptions: () => callApi<Partial<JournalOptions> | null>('getOptions'),
   saveOptions: (options: JournalOptions) => callApi<JournalOptions>('saveOptions', { options }),
+  getSettings: () => callApi<Settings>('getSettings'),
+  saveSetting: (key: keyof Settings, value: string | null) =>
+    callApi<{ key: keyof Settings; value: string | null }>('saveSetting', { key, value }),
+}
+
+/** Single-value settings in the Settings sheet; missing keys are unset. */
+export interface Settings {
+  /** YYYY-MM-DD; XP ignores trade days before it. */
+  xpStartDate?: string | null
 }

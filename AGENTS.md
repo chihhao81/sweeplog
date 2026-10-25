@@ -63,6 +63,7 @@ gas/   Google Apps Script 後端（TypeScript → esbuild 打包 → clasp 推�
 - **損益完全不影響經驗值**（使用者的決定：照計畫之後的輸贏不是自己能決定的）。只看照計畫、評級、情緒、錯誤標籤、每日日誌和過度交易
 - 使用者要求**懲罰要非常重**：沒照計畫 −150、C 級 −100、嚴重錯誤 −100，不要調輕。經驗值可以變成負的（Lv.0「爆倉」）
 - 只有填了 `grade` 和 `followedPlan` 的部位才計分；計分規則對話框直接讀 `xp.ts` 的常數，改規則只要改常數
+- 計分起點（既往不究）：`Settings` 工作表的 `xpStartDate`，這天之前的交易日完全不計分，也不算待覆盤。存在試算表是為了讓手機和電腦一致
 - 裝備的封號存在 localStorage（`sweeplog.title`）
 
 ### 截圖
@@ -81,14 +82,14 @@ gas/   Google Apps Script 後端（TypeScript → esbuild 打包 → clasp 推�
 | DailyJournal | `date\|accountName` | 每日日誌 |
 | Screenshots | id (UUID) | Drive 檔案 ID、日期、說明 |
 | PositionScreenshots | `positionId\|screenshotId` | 關聯表 |
-| Settings | key | `options`：下拉選項的 JSON |
+| Settings | key | `options`：下拉選項的 JSON；`xpStartDate`：經驗值計分起點 |
 | Accounts | accountName | 沒有使用（使用者決定不做 Topstep 規則追蹤） |
 
 **修改結構時**：在 `schema.ts` 新增欄位，部署 GAS 後請使用者到網頁「設定」頁按「建立 / 檢查工作表」。已經有資料的工作表只會在最後面補上新欄位，不會刪除或重新排列；沒有資料的工作表會重建標題列。**不要改名或刪除已經有資料的欄位**。
 
 ## GAS actions（`gas/src/index.ts` 的 `ACTIONS`）
 
-`ping`、`setup`、`existingIds`、`importData`、`listPositions`、`updatePosition`、`listTrades`、`listJournal`、`saveJournal`、`getOptions`、`saveOptions`、`uploadScreenshot`、`listScreenshots`、`updateScreenshot`、`deleteScreenshot`（只刪紀錄）、`exportAll`（唯讀）。
+`ping`、`setup`、`existingIds`、`importData`、`listPositions`、`updatePosition`、`listTrades`、`listJournal`、`saveJournal`、`getOptions`、`saveOptions`、`getSettings`、`saveSetting`（單一值設定，只接受 `SETTING_KEYS` 裡的 key）、`uploadScreenshot`、`listScreenshots`、`updateScreenshot`、`deleteScreenshot`（只刪紀錄）、`exportAll`（唯讀）。
 
 前端對應的呼叫在 `web/src/lib/api.ts`，React Query hooks 在 `web/src/lib/queries.ts`。新增 action 時兩邊都要改。寫入類的 action 要包在 `withLock` 裡。
 

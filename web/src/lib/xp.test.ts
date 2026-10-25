@@ -119,4 +119,15 @@ describe('computeProgress', () => {
     expect(r.unlocks.some((u) => u.id === 'comeback')).toBe(true)
     expect(r.unlocks.some((u) => u.id === 'first')).toBe(true)
   })
+
+  it('ignores trade days before the start date', () => {
+    const old = pos({ tradeDay: '2026-10-19', openedAt: '2026-10-19T21:00:00+08:00', grade: 'C', followedPlan: false })
+    const unjournaled = pos({ tradeDay: '2026-10-19', openedAt: '2026-10-19T22:00:00+08:00' })
+    const fresh = good({ tradeDay: '2026-10-20' })
+    const oldDay = entry({ date: '2026-10-19', followedDailyRules: false })
+    const r = computeProgress([old, unjournaled, fresh], [oldDay], '2026-10-20')
+    expect(r.pending).toBe(0)
+    expect(r.ledger.map((e) => e.day)).toEqual(['2026-10-20', '2026-10-20'])
+    expect(r.total).toBeGreaterThan(0)
+  })
 })

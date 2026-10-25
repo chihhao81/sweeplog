@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api } from './api'
+import { api, type Settings } from './api'
 import { compressImage } from './image'
 import { withDefaults, type JournalOptions } from './options'
 import { loadConnection } from './settings'
@@ -32,6 +32,23 @@ export function useUpdatePosition() {
         list?.map((p) => (p.positionId === positionId ? { ...p, ...fields, updatedAt: saved.updatedAt } : p)),
       )
     },
+  })
+}
+
+export function useSettings() {
+  return useQuery({
+    queryKey: ['settings'],
+    queryFn: api.getSettings,
+    enabled: loadConnection() !== null,
+    staleTime: Infinity,
+  })
+}
+
+export function useSaveSetting() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ key, value }: { key: keyof Settings; value: string | null }) => api.saveSetting(key, value),
+    onSuccess: ({ key, value }) => qc.setQueryData<Settings>(['settings'], (s) => ({ ...s, [key]: value })),
   })
 }
 

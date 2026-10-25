@@ -4,7 +4,7 @@ import { Link } from 'react-router'
 import { Button, Card, EmptyState, ErrorBox, Spinner } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { dayLabel, timeOf } from '@/lib/format'
-import { useJournal, usePositions } from '@/lib/queries'
+import { useJournal, usePositions, useSaveSetting, useSettings } from '@/lib/queries'
 import { loadConnection } from '@/lib/settings'
 import {
   ACHIEVEMENTS,
@@ -60,12 +60,14 @@ function saveTitle(id: string | null) {
 export function AchievementsPage() {
   const positions = usePositions()
   const journal = useJournal()
+  const settings = useSettings()
+  const startDate = settings.data?.xpStartDate ?? null
   const [showRules, setShowRules] = useState(false)
   const [title, setTitle] = useState(loadTitle)
 
   const progress = useMemo(
-    () => (positions.data ? computeProgress(positions.data, journal.data ?? []) : null),
-    [positions.data, journal.data],
+    () => (positions.data ? computeProgress(positions.data, journal.data ?? [], startDate) : null),
+    [positions.data, journal.data, startDate],
   )
 
   if (!loadConnection()) return <NeedsSetup />
@@ -88,15 +90,16 @@ export function AchievementsPage() {
         </Button>
       </div>
 
-      {(positions.isPending || journal.isPending) && <Spinner />}
+      {(positions.isPending || journal.isPending || settings.isPending) && <Spinner />}
       {positions.isError && <ErrorBox message={positions.error.message} />}
       {journal.isError && <ErrorBox message={journal.error.message} />}
-      {progress && journal.isSuccess && (
-        progress.journaled === 0 && progress.pending === 0 ? (
+      {progress && journal.isSuccess && !settings.isPending && (
+        positions.data?.length === 0 ? (
           <EmptyState title="還沒有交易資料" hint="先到「匯入」上傳 Topstep 報表" />
         ) : (
           <div className="space-y-4">
             <LevelCard progress={progress} titleId={title} />
+            <StartDateCard key={startDate ?? ''} startDate={startDate} loadError={settings.error?.message ?? null} />
             <Badges progress={progress} titleId={title} onEquip={equip} />
             <Ledger entries={progress.ledger} />
           </div>
@@ -165,7 +168,63 @@ function LevelCard({ progress, titleId }: { progress: Progress; titleId: string 
             ⏳ {progress.pending} 筆待覆盤，覆盤後才會計分
           </Link>
         )}
+        {progress.pending > 0 && (
+          // A button, not an #anchor: the hash router would read the anchor as a route.
+          <button
+            type="button"
+            onClick={() => document.getElementById('xp-start')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+            className="rounded-full px-1 py-1 text-xs text-muted underline-offset-2 hover:text-fg hover:underline"
+          >
+            太多了？設定計分起點
+          </button>
+        )}
       </div>
+    </Card>
+  )
+}
+
+/** Today as YYYY-MM-DD in the browser's time zone. */
+function today(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function StartDateCard({ startDate, loadError }: { startDate: string | null; loadError: string | null }) {
+  const save = useSaveSetting()
+  const [draft, setDraft] = useState(startDate ?? today())
+  const set = (value: string | null) => save.mutate({ key: 'xpStartDate', value })
+
+  return (
+    <Card>
+      <div id="xp-start" className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="font-medium">計分起點（既往不究）</h2>
+          <p className="mt-0.5 text-sm text-muted">
+            {startDate
+              ? `從 ${startDate.slice(0, 4)}/${dayLabel(startDate)} 起開始計分，之前的交易不加分、不扣分，也不用補覆盤`
+              : '目前計算全部交易。設定起點後，之前的交易不加分、不扣分，也不用補覆盤'}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="date"
+            aria-label="計分起點"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            className="h-9 rounded-md border border-border bg-bg px-3 text-sm outline-none focus:border-accent"
+          />
+          <Button disabled={!draft || draft === startDate || save.isPending} onClick={() => set(draft)}>
+            {save.isPending ? '儲存中…' : '從這天開始'}
+          </Button>
+          {startDate && (
+            <Button variant="ghost" disabled={save.isPending} onClick={() => set(null)}>
+              改回全部計算
+            </Button>
+          )}
+        </div>
+      </div>
+      {loadError && <ErrorBox message={`讀不到計分起點：${loadError}`} />}
+      {save.isError && <ErrorBox message={save.error.message} />}
     </Card>
   )
 }
