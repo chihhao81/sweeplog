@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createHashRouter, RouterProvider } from 'react-router'
 import { Layout } from '@/components/Layout'
+import { AchievementsPage } from '@/pages/AchievementsPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { DayPage } from '@/pages/DayPage'
 import { ImportPage } from '@/pages/ImportPage'
@@ -26,6 +27,7 @@ const router = createHashRouter([
       { path: 'day/:date', element: <DayPage /> },
       { path: 'journal', element: <JournalPage /> },
       { path: 'review', element: <ReviewPage /> },
+      { path: 'achievements', element: <AchievementsPage /> },
       { path: 'import', element: <ImportPage /> },
       { path: 'settings', element: <SettingsPage /> },
     ],

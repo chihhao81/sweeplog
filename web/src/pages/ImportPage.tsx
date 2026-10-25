@@ -3,7 +3,7 @@ import { CheckCircle2, FileSpreadsheet, Upload, X } from 'lucide-react'
 import { useMemo, useState, type DragEvent } from 'react'
 import { Link } from 'react-router'
 import { Button, Card, ErrorBox, Field, PageHeader } from '@/components/ui'
-import { api, type ImportPayload } from '@/lib/api'
+import { api } from '@/lib/api'
 import { cn } from '@/lib/cn'
 import { dayLabel, money, pnlClass } from '@/lib/format'
 import { parseExport, type ParsedExport } from '@/lib/topstep/parse'
@@ -48,7 +48,7 @@ export function ImportPage() {
   const newOrders = preview.orders.filter((o) => !known.orders.has(o.id)).length
 
   const importMutation = useMutation({
-    mutationFn: () => api.importData(toPayload(preview, Boolean(ordersFile))),
+    mutationFn: () => api.importData(preview),
     onSuccess: () => {
       rememberAccount(account.trim())
       queryClient.invalidateQueries({ queryKey: ['positions'] })
@@ -88,12 +88,14 @@ export function ImportPage() {
   }
 
   const multiAccount = ordersFile?.kind === 'orders' && ordersFile.accountNames.length > 1
+  // Both reports are required: stops and R come from matching trades to orders,
+  // and a lone report would leave those fields missing for good.
   const canImport =
-    preview.trades.length + preview.orders.length > 0 && account.trim() !== '' && !multiAccount
+    Boolean(tradesFile && ordersFile) && preview.trades.length > 0 && account.trim() !== '' && !multiAccount
 
   return (
     <>
-      <PageHeader title="匯入" description="上傳 Topstep 匯出的 Trades 與 Orders CSV，可以一次選兩個檔案" />
+      <PageHeader title="匯入" description="上傳 Topstep 匯出的 Trades 與 Orders CSV，兩份要一起匯入（可以一次選兩個檔案）" />
 
       <label
         onDragOver={(e) => {
@@ -151,9 +153,8 @@ export function ImportPage() {
             ))}
           </div>
 
-          {!tradesFile && <Hint>只有 Orders：會存訂單，但不會產生交易部位。</Hint>}
-          {!ordersFile && tradesFile && (
-            <Hint>沒有 Orders：停損、目標價與自動 R 值無法計算（已存在的值不會被清掉）。</Hint>
+          {(!tradesFile || !ordersFile) && (
+            <Hint>{`還缺 ${tradesFile ? 'Orders' : 'Trades'} 報表：兩份要一起匯入，停損、目標價與 R 值才算得出來`}</Hint>
           )}
           {multiAccount && <ErrorBox message="Orders 檔案包含多個帳號，請在 Topstep 分帳號匯出" />}
 
@@ -210,18 +211,6 @@ export function ImportPage() {
 }
 
 const LABELS = { trades: '成交', orders: '訂單', positions: '部位' }
-
-function toPayload(
-  preview: { trades: ImportPayload['trades']; orders: ImportPayload['orders']; positions: PositionDerived[] },
-  hasOrders: boolean,
-): ImportPayload {
-  // Without an orders file the bracket fields are unknown; omit them so the
-  // upsert keeps values stored by an earlier import.
-  const positions = hasOrders
-    ? preview.positions
-    : preview.positions.map(({ stopPrice: _s, targetPrice: _t, autoRisk: _r, ...rest }) => rest)
-  return { trades: preview.trades, orders: preview.orders, positions }
-}
 
 function DayPreview({ positions }: { positions: PositionDerived[] }) {
   const days = useMemo(() => {

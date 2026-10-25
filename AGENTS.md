@@ -42,6 +42,7 @@ gas/   Google Apps Script 後端（TypeScript → esbuild 打包 → clasp 推�
 ### Topstep CSV（`web/src/lib/topstep/parse.ts`）
 - 會依欄位名稱自動判斷是 Trades 還是 Orders 報表；時間格式是 `MM/DD/YYYY HH:mm:ss +08:00`，轉成 ISO 字串時保留原本的時區偏移
 - **Trades 報表沒有帳號欄位**，帳號要從 Orders 帶入，或沿用上次的帳號（`lastAccount()`）
+- **匯入一定要 Trades 和 Orders 兩份一起**（`ImportPage` 的 `canImport`）。停損、目標價和 R 值只用這次選的檔案計算，不會讀試算表裡既有的資料，所以只匯入一份會留下永遠補不回來的空值
 - Trades 報表裡每一筆是**一口合約**，已經依 FIFO 配對好進出場
 - 淨損益 = `PnL − Fees − Commissions`（已經和使用者確認過，沒有重複扣除）
 
@@ -56,6 +57,13 @@ gas/   Google Apps Script 後端（TypeScript → esbuild 打包 → clasp 推�
 - 依**紐約時間**分類（會自動處理美國夏令時間）：Asia 18–02、London 02–07、NY AM 07–12、NY Lunch 12–13:30、NY PM 13:30–17、其他時間歸為 Other
 - 顯示時會加上台灣時間。單筆交易用**交易當天的季節**換算；統計表或篩選器裡的群組如果同時有夏令和冬令的交易，就兩種時間都列
 - 時段是匯入時算好存進試算表的。如果要改時段的切分方式，需要做一個重新計算的機制（目前沒有）
+
+### 成就與經驗值（`web/src/lib/xp.ts`）
+- 全部在前端從 Positions + DailyJournal 依時間重播算出來，沒有存進試算表；改舊的覆盤，經驗值就會重算
+- **損益完全不影響經驗值**（使用者的決定：照計畫之後的輸贏不是自己能決定的）。只看照計畫、評級、情緒、錯誤標籤、每日日誌和過度交易
+- 使用者要求**懲罰要非常重**：沒照計畫 −150、C 級 −100、嚴重錯誤 −100，不要調輕。經驗值可以變成負的（Lv.0「爆倉」）
+- 只有填了 `grade` 和 `followedPlan` 的部位才計分；計分規則對話框直接讀 `xp.ts` 的常數，改規則只要改常數
+- 裝備的封號存在 localStorage（`sweeplog.title`）
 
 ### 截圖
 - 上傳前會在瀏覽器壓縮（最長邊 1920px、轉 WebP），存到 Drive 的 `sweeplog/YYYY/MM/`
