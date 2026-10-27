@@ -110,6 +110,7 @@ cd gas && npm run deploy   # 推送並更新同一個 Web App 部署（網址不
 
 - 改了 `gas/` 的程式碼，一定要執行 `npm run deploy`。只執行 `push` 不會更新 Web App，它跑的是固定版本
 - `web/` push 到 `main` 後，`.github/workflows/deploy-pages.yml` 會自動部署
+- **版號**在 `web/package.json` 的 `version`（顯示在側邊欄底部和手機版上方列，讓使用者確認裝置上是不是最新版）。每次 push 網頁的改動都要升版：修正升 patch、新功能升 minor，用 `cd web && npm version <patch|minor> --no-git-tag-version`（會一起更新 package-lock.json）
 - 每次改完都要跑 `npm test`、`npm run build`、`npm run lint`
 
 ## 已知的坑

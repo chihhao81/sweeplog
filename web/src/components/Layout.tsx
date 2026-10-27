@@ -55,12 +55,14 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
+        <div className="mt-auto px-5 py-3 text-xs text-muted tabular">v{__APP_VERSION__}</div>
       </aside>
 
       {/* Mobile top bar */}
       <header className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b border-border bg-bg/90 px-4 backdrop-blur md:hidden">
         <CandlestickChart className="size-5 text-accent" />
         <span className="font-semibold tracking-tight">SweepLog</span>
+        <span className="ml-auto text-[11px] text-muted tabular">v{__APP_VERSION__}</span>
       </header>
 
       <main className="min-w-0 flex-1 px-4 pt-4 pb-24 md:px-8 md:pt-8 md:pb-8">
