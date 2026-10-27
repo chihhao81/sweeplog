@@ -41,7 +41,7 @@ gas/   Google Apps Script 後端（TypeScript → esbuild 打包 → clasp 推�
 
 ### Topstep CSV（`web/src/lib/topstep/parse.ts`）
 - 會依欄位名稱自動判斷是 Trades 還是 Orders 報表；時間格式是 `MM/DD/YYYY HH:mm:ss +08:00`，轉成 ISO 字串時保留原本的時區偏移
-- **Trades 報表沒有帳號欄位**，帳號要從 Orders 帶入，或沿用上次的帳號（`lastAccount()`）
+- **Trades 報表沒有帳號欄位**，帳號一律從 Orders 帶入（Orders 只能有一個帳號）。`lastAccount()` 只用來給每日日誌當預設帳號
 - **匯入一定要 Trades 和 Orders 兩份一起**（`ImportPage` 的 `canImport`）。停損、目標價和 R 值只用這次選的檔案計算，不會讀試算表裡既有的資料，所以只匯入一份會留下永遠補不回來的空值
 - Trades 報表裡每一筆是**一口合約**，已經依 FIFO 配對好進出場
 - 淨損益 = `PnL − Fees − Commissions`（已經和使用者確認過，沒有重複扣除）

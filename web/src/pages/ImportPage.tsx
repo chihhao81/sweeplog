@@ -2,13 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, FileSpreadsheet, Upload, X } from 'lucide-react'
 import { useMemo, useState, type DragEvent } from 'react'
 import { Link } from 'react-router'
-import { Button, Card, ErrorBox, Field, PageHeader } from '@/components/ui'
+import { Button, Card, ErrorBox, PageHeader } from '@/components/ui'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/cn'
 import { dayLabel, money, pnlClass } from '@/lib/format'
 import { parseExport, type ParsedExport } from '@/lib/topstep/parse'
 import { buildPositions } from '@/lib/topstep/positions'
-import { lastAccount, rememberAccount } from '@/lib/settings'
+import { rememberAccount } from '@/lib/settings'
 import type { PositionDerived } from '@/lib/types'
 
 interface LoadedFile {
@@ -20,7 +20,6 @@ export function ImportPage() {
   const queryClient = useQueryClient()
   const [files, setFiles] = useState<LoadedFile[]>([])
   const [errors, setErrors] = useState<string[]>([])
-  const [account, setAccount] = useState(lastAccount)
   const [dragging, setDragging] = useState(false)
 
   const existing = useQuery({
@@ -32,11 +31,14 @@ export function ImportPage() {
 
   const tradesFile = files.find((f) => f.parsed.kind === 'trades')?.parsed
   const ordersFile = files.find((f) => f.parsed.kind === 'orders')?.parsed
+  // Trades has no account column; the required Orders report supplies it.
+  const accountNames = ordersFile?.kind === 'orders' ? ordersFile.accountNames : []
+  const account = accountNames.length === 1 ? accountNames[0] : ''
 
   const preview = useMemo(() => {
     const parsedTrades = tradesFile?.kind === 'trades' ? tradesFile.rows : []
     const orders = ordersFile?.kind === 'orders' ? ordersFile.rows : []
-    const { trades, positions } = buildPositions(parsedTrades, orders, account.trim())
+    const { trades, positions } = buildPositions(parsedTrades, orders, account)
     return { trades, orders, positions }
   }, [tradesFile, ordersFile, account])
 
@@ -50,7 +52,7 @@ export function ImportPage() {
   const importMutation = useMutation({
     mutationFn: () => api.importData(preview),
     onSuccess: () => {
-      rememberAccount(account.trim())
+      rememberAccount(account)
       queryClient.invalidateQueries({ queryKey: ['positions'] })
       queryClient.invalidateQueries({ queryKey: ['trades'] })
       queryClient.invalidateQueries({ queryKey: ['existingIds'] })
@@ -75,10 +77,6 @@ export function ImportPage() {
       ...loaded,
     ])
     setErrors(errs)
-    const fromOrders = loaded.find((l) => l.parsed.kind === 'orders')?.parsed
-    if (fromOrders?.kind === 'orders' && fromOrders.accountNames.length === 1) {
-      setAccount(fromOrders.accountNames[0])
-    }
   }
 
   function onDrop(e: DragEvent) {
@@ -87,11 +85,10 @@ export function ImportPage() {
     addFiles(e.dataTransfer.files)
   }
 
-  const multiAccount = ordersFile?.kind === 'orders' && ordersFile.accountNames.length > 1
+  const multiAccount = accountNames.length > 1
   // Both reports are required: stops and R come from matching trades to orders,
   // and a lone report would leave those fields missing for good.
-  const canImport =
-    Boolean(tradesFile && ordersFile) && preview.trades.length > 0 && account.trim() !== '' && !multiAccount
+  const canImport = Boolean(tradesFile && ordersFile) && preview.trades.length > 0 && account !== ''
 
   return (
     <>
@@ -157,26 +154,20 @@ export function ImportPage() {
             <Hint>{`還缺 ${tradesFile ? 'Orders' : 'Trades'} 報表：兩份要一起匯入，停損、目標價與 R 值才算得出來`}</Hint>
           )}
           {multiAccount && <ErrorBox message="Orders 檔案包含多個帳號，請在 Topstep 分帳號匯出" />}
+          {ordersFile && accountNames.length === 0 && <ErrorBox message="Orders 檔案裡沒有帳號資料" />}
 
           <Card>
-            <div className="grid gap-4 md:grid-cols-[1fr_2fr] md:items-end">
-              <Field
-                label="帳號"
-                value={account}
-                onChange={(e) => setAccount(e.target.value)}
-                hint="Trades 報表沒有帳號欄位，會從 Orders 帶入或沿用上次的帳號"
-              />
-              <div className="grid grid-cols-3 gap-3">
-                <Stat label="成交" value={preview.trades.length} sub={existing.data ? `新 ${newTrades}` : '比對中…'} />
-                <Stat label="訂單" value={preview.orders.length} sub={existing.data ? `新 ${newOrders}` : '比對中…'} />
-                <Stat label="部位" value={preview.positions.length} sub={dateRange(preview.positions)} />
-              </div>
+            <div className="grid grid-cols-3 gap-3">
+              <Stat label="成交" value={preview.trades.length} sub={existing.data ? `新 ${newTrades}` : '比對中…'} />
+              <Stat label="訂單" value={preview.orders.length} sub={existing.data ? `新 ${newOrders}` : '比對中…'} />
+              <Stat label="部位" value={preview.positions.length} sub={dateRange(preview.positions)} />
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <Button disabled={!canImport || importMutation.isPending} onClick={() => importMutation.mutate()}>
                 {importMutation.isPending ? '匯入中…' : '匯入到試算表'}
               </Button>
+              {account && <span className="text-xs text-muted">帳號：{account}</span>}
               {existing.isError && <span className="text-xs text-loss">無法比對既有資料：{existing.error.message}</span>}
             </div>
 
