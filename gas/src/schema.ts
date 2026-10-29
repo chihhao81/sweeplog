@@ -101,7 +101,6 @@ export const SHEETS = {
       // Manual (written by the journal form, never by import)
       riskOverride: 'number',
       setup: 'text',
-      liquiditySwept: 'text',
       htfBias: 'text',
       entryTimeframe: 'text',
       entryTrigger: 'text',

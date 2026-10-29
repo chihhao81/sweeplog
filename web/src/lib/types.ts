@@ -73,7 +73,6 @@ export interface PositionDerived {
 export interface PositionManual {
   riskOverride: number | null
   setup: string | null
-  liquiditySwept: string | null
   htfBias: string | null
   entryTimeframe: string | null
   entryTrigger: string | null

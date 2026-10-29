@@ -177,7 +177,6 @@ const SETTING_KEYS = ['xpStartDate']
 const MANUAL_POSITION_FIELDS = [
   'riskOverride',
   'setup',
-  'liquiditySwept',
   'htfBias',
   'entryTimeframe',
   'entryTrigger',

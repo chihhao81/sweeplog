@@ -14,7 +14,6 @@ function toDraft(p: Position): Draft {
   return {
     riskOverride: p.riskOverride ?? null,
     setup: p.setup ?? null,
-    liquiditySwept: p.liquiditySwept ?? null,
     htfBias: p.htfBias ?? null,
     entryTimeframe: p.entryTimeframe ?? null,
     entryTrigger: p.entryTrigger ?? null,
@@ -55,13 +54,6 @@ export function PositionJournal({ position, options }: { position: Position; opt
         </FormRow>
         <FormRow label="評級">
           <ChipSelect options={options.grades} value={draft.grade} onChange={(v) => set('grade', v)} />
-        </FormRow>
-        <FormRow label="被掃的流動性">
-          <ChipMulti
-            options={options.liquidity}
-            value={splitMulti(draft.liquiditySwept)}
-            onChange={(v) => set('liquiditySwept', joinMulti(v))}
-          />
         </FormRow>
         <FormRow label="大週期方向">
           <ChipSelect options={BIAS} value={draft.htfBias} onChange={(v) => set('htfBias', v)} />
