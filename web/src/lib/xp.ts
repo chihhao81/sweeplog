@@ -147,6 +147,8 @@ export interface Progress {
   cleanDayStreak: number
   tilt: boolean
   pending: number
+  /** Positions still waiting for a grade or plan answer, oldest first. */
+  pendingPositions: Position[]
   journaled: number
   ledger: LedgerEntry[] // oldest first
   unlocks: Unlock[]
@@ -155,6 +157,14 @@ export interface Progress {
 /** A position counts once its grade and plan answer are filled in. */
 export function isJournaled(p: Position): boolean {
   return p.grade != null && p.grade !== '' && p.followedPlan != null
+}
+
+/** Which of the fields that `isJournaled` needs are still empty (UI labels). */
+export function missingJournalFields(p: Position): string[] {
+  const missing: string[] = []
+  if (p.grade == null || p.grade === '') missing.push('評級')
+  if (p.followedPlan == null) missing.push('照計畫')
+  return missing
 }
 
 /** Followed the plan, no mistake tags and not a C. */
@@ -209,7 +219,7 @@ export function computeProgress(positions: Position[], journal: JournalEntry[], 
   let journalDayStreak = 0
   let tilt = false
   let journaled = 0
-  let pending = 0
+  const pendingPositions: Position[] = []
   let nyAmClean = 0
   const counts = { revenge: 0, gambler: 0, stopMover: 0, c: 0 }
 
@@ -226,7 +236,7 @@ export function computeProgress(positions: Position[], journal: JournalEntry[], 
 
     for (const p of list) {
       if (!isJournaled(p)) {
-        pending++
+        pendingPositions.push(p)
         dayPending = true
         continue
       }
@@ -365,7 +375,8 @@ export function computeProgress(positions: Position[], journal: JournalEntry[], 
     breakStreak,
     cleanDayStreak,
     tilt,
-    pending,
+    pending: pendingPositions.length,
+    pendingPositions,
     journaled,
     ledger,
     unlocks: [...unlocks.values()],

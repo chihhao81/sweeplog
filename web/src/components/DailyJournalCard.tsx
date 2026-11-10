@@ -27,18 +27,36 @@ function emptyEntry(date: string, accountName: string): Draft {
 
 export function DailyJournalCard({ date, accountName }: { date: string; accountName: string }) {
   const journal = useJournal()
+  // Owned here, not by the form: a successful save changes `updatedAt`, which remounts
+  // the form, and the "saved" message has to survive that.
+  const save = useSaveJournal()
   if (journal.isPending) return null
   if (journal.isError) return <ErrorBox message={journal.error.message} />
 
   const entry = journal.data.find((e) => e.date === date && e.accountName === accountName)
   // Remount when the stored entry changes so the form starts from saved values.
-  return <JournalForm key={`${date}|${entry?.updatedAt ?? 'new'}`} initial={entry ?? emptyEntry(date, accountName)} />
+  const savedHere = save.isSuccess && save.data.date === date && save.data.accountName === accountName
+  return (
+    <JournalForm
+      key={`${date}|${entry?.updatedAt ?? 'new'}`}
+      initial={entry ?? emptyEntry(date, accountName)}
+      save={save}
+      savedAt={savedHere ? (save.data.updatedAt ?? '') : null}
+    />
+  )
 }
 
-function JournalForm({ initial }: { initial: Draft }) {
+function JournalForm({
+  initial,
+  save,
+  savedAt,
+}: {
+  initial: Draft
+  save: ReturnType<typeof useSaveJournal>
+  savedAt: string | null
+}) {
   const [draft, setDraft] = useState<Draft>(initial)
   const [dirty, setDirty] = useState(false)
-  const save = useSaveJournal()
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => {
     setDirty(true)
     setDraft((d) => ({ ...d, [k]: v }))
@@ -106,12 +124,24 @@ function JournalForm({ initial }: { initial: Draft }) {
 
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={!dirty || save.isPending}>
+            {save.isPending && (
+              <span className="size-3.5 animate-spin rounded-full border-2 border-accent-fg/40 border-t-accent-fg" />
+            )}
             {save.isPending ? '儲存中…' : '儲存日誌'}
           </Button>
           {dirty && !save.isPending && <span className="text-xs text-warn">尚未儲存</span>}
+          {!dirty && !save.isPending && savedAt !== null && (
+            <span className="text-xs text-profit">✓ 已儲存 {formatSavedAt(savedAt)}</span>
+          )}
         </div>
         {save.isError && <ErrorBox message={save.error.message} />}
       </form>
     </Card>
   )
+}
+
+function formatSavedAt(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false })
 }

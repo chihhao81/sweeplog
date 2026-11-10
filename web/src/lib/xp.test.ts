@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { JournalEntry, Position } from './types'
-import { computeProgress, levelOf, levelStart, rankOf } from './xp'
+import { computeProgress, levelOf, levelStart, missingJournalFields, rankOf } from './xp'
 
 let seq = 0
 function pos(over: Partial<Position>): Position {
@@ -42,6 +42,21 @@ describe('levels', () => {
     expect([levelOf(-1), levelOf(0), levelOf(99), levelOf(100), levelOf(449), levelOf(450)]).toEqual([0, 1, 1, 2, 3, 4])
     expect(rankOf(0).name).toBe('爆倉')
     expect(rankOf(12).name).toBe('紀律新兵')
+  })
+})
+
+describe('missingJournalFields', () => {
+  it('names the empty fields that keep a position pending', () => {
+    expect(missingJournalFields(pos({ grade: null, followedPlan: null }))).toEqual(['評級', '照計畫'])
+    expect(missingJournalFields(pos({ grade: 'A', followedPlan: null }))).toEqual(['照計畫'])
+    expect(missingJournalFields(pos({ grade: '', followedPlan: true }))).toEqual(['評級'])
+    expect(missingJournalFields(pos({ grade: 'B', followedPlan: false }))).toEqual([])
+  })
+
+  it('lists the pending positions themselves', () => {
+    const missing = pos({ grade: 'A', followedPlan: null })
+    const r = computeProgress([good(), missing], [])
+    expect(r.pendingPositions.map((p) => p.positionId)).toEqual([missing.positionId])
   })
 })
 
