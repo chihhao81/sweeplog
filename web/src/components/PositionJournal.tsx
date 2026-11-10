@@ -5,6 +5,7 @@ import { money, rMultiple } from '@/lib/format'
 import { joinMulti, splitMulti, type JournalOptions } from '@/lib/options'
 import { useUpdatePosition } from '@/lib/queries'
 import { positionR, type Position, type PositionManual } from '@/lib/types'
+import { missingJournalFields } from '@/lib/xp'
 
 const BIAS = ['多', '空', '盤整']
 
@@ -39,12 +40,16 @@ export function PositionJournal({ position, options }: { position: Position; opt
   const original = toDraft(position)
   const dirty = (Object.keys(draft) as (keyof Draft)[]).some((k) => draft[k] !== original[k])
   const previewR = positionR({ ...position, riskOverride: draft.riskOverride })
+  // Grade and plan answer are what make a position count as reviewed (xp.ts isJournaled),
+  // so a save without them would leave it pending.
+  const missing = missingJournalFields({ ...position, ...draft })
 
   return (
     <form
       className="space-y-4 pt-3"
       onSubmit={(e) => {
         e.preventDefault()
+        if (missing.length > 0) return
         update.mutate({ positionId: position.positionId, fields: draft })
       }}
     >
@@ -52,7 +57,7 @@ export function PositionJournal({ position, options }: { position: Position; opt
         <FormRow label="Setup">
           <ChipSelect options={options.setups} value={draft.setup} onChange={(v) => set('setup', v)} />
         </FormRow>
-        <FormRow label="評級">
+        <FormRow label="評級" required>
           <ChipSelect options={options.grades} value={draft.grade} onChange={(v) => set('grade', v)} />
         </FormRow>
         <FormRow label="大週期方向">
@@ -68,7 +73,7 @@ export function PositionJournal({ position, options }: { position: Position; opt
             onChange={(v) => set('entryTimeframe', v)}
           />
         </FormRow>
-        <FormRow label="照計畫執行">
+        <FormRow label="照計畫執行" required>
           <YesNo value={draft.followedPlan} onChange={(v) => set('followedPlan', v)} />
         </FormRow>
         <FormRow label="風險金額（覆蓋自動計算）">
@@ -117,10 +122,14 @@ export function PositionJournal({ position, options }: { position: Position; opt
       </div>
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={!dirty || update.isPending}>
+        <Button type="submit" disabled={!dirty || missing.length > 0 || update.isPending}>
           {update.isPending ? '儲存中…' : '儲存'}
         </Button>
-        {dirty && !update.isPending && <span className="text-xs text-warn">尚未儲存</span>}
+        {dirty && !update.isPending && (
+          <span className="text-xs text-warn">
+            {missing.length > 0 ? `請先填寫${missing.join('、')}才能儲存` : '尚未儲存'}
+          </span>
+        )}
         {update.isSuccess && !dirty && <span className="text-xs text-profit">已儲存</span>}
       </div>
       {update.isError && <ErrorBox message={update.error.message} />}

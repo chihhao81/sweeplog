@@ -52,12 +52,6 @@ describe('missingJournalFields', () => {
     expect(missingJournalFields(pos({ grade: '', followedPlan: true }))).toEqual(['評級'])
     expect(missingJournalFields(pos({ grade: 'B', followedPlan: false }))).toEqual([])
   })
-
-  it('lists the pending positions themselves', () => {
-    const missing = pos({ grade: 'A', followedPlan: null })
-    const r = computeProgress([good(), missing], [])
-    expect(r.pendingPositions.map((p) => p.positionId)).toEqual([missing.positionId])
-  })
 })
 
 describe('computeProgress', () => {

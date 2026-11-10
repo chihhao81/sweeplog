@@ -1,10 +1,17 @@
 import type { ReactNode, TextareaHTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
 
-export function FormRow({ label, children }: { label: string; children: ReactNode }) {
+export function FormRow({ label, required = false, children }: { label: string; required?: boolean; children: ReactNode }) {
   return (
     <div>
-      <div className="mb-1.5 text-xs font-medium text-muted">{label}</div>
+      <div className="mb-1.5 text-xs font-medium text-muted">
+        {label}
+        {required && (
+          <span className="ml-0.5 text-warn" aria-label="必填">
+            *
+          </span>
+        )}
+      </div>
       {children}
     </div>
   )

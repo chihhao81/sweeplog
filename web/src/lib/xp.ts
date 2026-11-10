@@ -147,8 +147,6 @@ export interface Progress {
   cleanDayStreak: number
   tilt: boolean
   pending: number
-  /** Positions still waiting for a grade or plan answer, oldest first. */
-  pendingPositions: Position[]
   journaled: number
   ledger: LedgerEntry[] // oldest first
   unlocks: Unlock[]
@@ -219,7 +217,7 @@ export function computeProgress(positions: Position[], journal: JournalEntry[], 
   let journalDayStreak = 0
   let tilt = false
   let journaled = 0
-  const pendingPositions: Position[] = []
+  let pending = 0
   let nyAmClean = 0
   const counts = { revenge: 0, gambler: 0, stopMover: 0, c: 0 }
 
@@ -236,7 +234,7 @@ export function computeProgress(positions: Position[], journal: JournalEntry[], 
 
     for (const p of list) {
       if (!isJournaled(p)) {
-        pendingPositions.push(p)
+        pending++
         dayPending = true
         continue
       }
@@ -375,8 +373,7 @@ export function computeProgress(positions: Position[], journal: JournalEntry[], 
     breakStreak,
     cleanDayStreak,
     tilt,
-    pending: pendingPositions.length,
-    pendingPositions,
+    pending,
     journaled,
     ledger,
     unlocks: [...unlocks.values()],

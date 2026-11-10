@@ -16,7 +16,6 @@ import {
   GRADE_XP,
   levelStart,
   MAX_LEVEL,
-  missingJournalFields,
   OVERTRADE_LIMIT,
   POSITION_XP,
   RANKS,
@@ -113,7 +112,6 @@ export function AchievementsPage() {
 }
 
 function LevelCard({ progress, titleId }: { progress: Progress; titleId: string | null }) {
-  const [showPending, setShowPending] = useState(false)
   const rank = rankOf(progress.level)
   const title = ACHIEVEMENTS.find((a) => a.id === titleId && progress.unlocks.some((u) => u.id === a.id))
   const pct = progress.inLevel ? Math.max(0, Math.min(100, (progress.inLevel.have / progress.inLevel.need) * 100)) : 100
@@ -163,14 +161,12 @@ function LevelCard({ progress, titleId }: { progress: Progress; titleId: string 
         {progress.breakStreak > 0 && <Status bad>💀 連續 {progress.breakStreak} 筆沒照計畫</Status>}
         {progress.tilt && <Status bad>😵 Tilt：加分減半，打出一個紀律日才解除</Status>}
         {progress.pending > 0 && (
-          <button
-            type="button"
-            aria-expanded={showPending}
-            onClick={() => setShowPending((v) => !v)}
+          <Link
+            to="/trades"
             className="rounded-full border border-warn/40 bg-warn/10 px-3 py-1 text-warn hover:bg-warn/20"
           >
-            ⏳ {progress.pending} 筆待覆盤，覆盤後才會計分 {showPending ? '▴' : '▾'}
-          </button>
+            ⏳ {progress.pending} 筆待覆盤，覆盤後才會計分
+          </Link>
         )}
         {progress.pending > 0 && (
           // A button, not an #anchor: the hash router would read the anchor as a route.
@@ -183,28 +179,6 @@ function LevelCard({ progress, titleId }: { progress: Progress; titleId: string 
           </button>
         )}
       </div>
-      {showPending && progress.pending > 0 && (
-        <div className="mt-3 rounded-md border border-warn/30 bg-surface-2 p-3 text-sm">
-          <p className="mb-2 text-xs text-muted">要填了「評級」和「照計畫」才算覆盤完成，點一下就會跳到那筆交易</p>
-          <ul className="space-y-1">
-            {progress.pendingPositions.map((p) => (
-              <li key={p.positionId}>
-                <Link
-                  to={`/day/${p.tradeDay}?open=${p.positionId}`}
-                  className="flex flex-wrap items-baseline gap-x-2 rounded px-1 py-0.5 hover:bg-surface hover:text-accent"
-                >
-                  <span className="text-muted">{dayLabel(p.tradeDay)}</span>
-                  <span>
-                    {p.contractName} {p.side === 'Long' ? '多' : '空'}
-                  </span>
-                  <span className="tabular text-muted">{timeOf(p.openedAt)}</span>
-                  <span className="text-xs text-warn">缺 {missingJournalFields(p).join('、')}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </Card>
   )
 }
