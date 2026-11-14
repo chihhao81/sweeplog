@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { JournalEntry, Position } from './types'
-import { computeProgress, levelOf, levelStart, missingJournalFields, rankOf } from './xp'
+import { computeProgress, levelOf, levelStart, missingJournalFields, rankOf, reentryPenalty } from './xp'
 
 let seq = 0
 function pos(over: Partial<Position>): Position {
@@ -138,5 +138,48 @@ describe('computeProgress', () => {
     expect(r.pending).toBe(0)
     expect(r.ledger.map((e) => e.day)).toEqual(['2026-10-20', '2026-10-20'])
     expect(r.total).toBeGreaterThan(0)
+  })
+
+  describe('re-entry after an agitated exit', () => {
+    const at = (open: string, close: string, over: Partial<Position> = {}) =>
+      good({ openedAt: `2026-10-20T21:${open}+08:00`, closedAt: `2026-10-20T21:${close}+08:00`, ...over })
+    const agitated = { emotionAfter: 2 }
+    const reentryItems = (r: ReturnType<typeof computeProgress>) =>
+      r.ledger.flatMap((e) => e.items).filter((i) => i.label.startsWith('焦躁出場後'))
+
+    it('tiers the penalty by the gap', () => {
+      expect([0, 0.99, 1, 4.9, 5, 14.9, 15, 60].map(reentryPenalty)).toEqual([-100, -100, -50, -50, -20, -20, null, null])
+    })
+
+    it('punishes the next position, not the agitated exit itself', () => {
+      const r = computeProgress([at('00:00', '10:00', agitated), at('10:30', '20:00')], [])
+      const items = reentryItems(r)
+      expect(items).toEqual([{ label: '焦躁出場後 30 秒就再進場', xp: -100 }])
+      expect(r.ledger[1].items).toContainEqual(items[0])
+    })
+
+    it('uses the latest exit on the same account, in any contract', () => {
+      const r = computeProgress(
+        [
+          at('00:00', '10:00', agitated),
+          at('01:00', '12:00', { contractName: 'MGCZ6' }), // calm exit closes later
+          at('13:00', '14:00'),
+          at('20:00', '30:00', { ...agitated, contractName: 'MGCZ6' }),
+          at('33:00', '40:00', { accountName: 'B' }), // other account: no penalty
+          at('33:30', '35:00'),
+        ],
+        [],
+      )
+      expect(reentryItems(r)).toEqual([{ label: '焦躁出場後 3.5 分鐘就再進場', xp: -50 }])
+    })
+
+    it('ignores calm or blank exits and long breaks, and counts unjournaled exits', () => {
+      const calm = computeProgress([at('00:00', '01:00', { emotionAfter: 3 }), at('01:10', '02:00')], [])
+      const blank = computeProgress([at('00:00', '01:00'), at('01:10', '02:00')], [])
+      const rested = computeProgress([at('00:00', '01:00', agitated), at('16:00', '17:00')], [])
+      const unjournaled = computeProgress([at('00:00', '01:00', { ...agitated, grade: null }), at('08:00', '09:00')], [])
+      expect([calm, blank, rested].map((r) => reentryItems(r).length)).toEqual([0, 0, 0])
+      expect(reentryItems(unjournaled)).toEqual([{ label: '焦躁出場後 7 分鐘就再進場', xp: -20 }])
+    })
   })
 })

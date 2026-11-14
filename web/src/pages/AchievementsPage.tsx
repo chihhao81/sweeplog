@@ -18,6 +18,8 @@ import {
   MAX_LEVEL,
   OVERTRADE_LIMIT,
   POSITION_XP,
+  AGITATED_AFTER_MAX,
+  REENTRY_TIERS,
   RANKS,
   rankOf,
   REDEEM_STREAK,
@@ -389,6 +391,10 @@ function RulesDialog({ onClose }: { onClose: () => void }) {
   }, [onClose])
 
   const grades = Object.entries(GRADE_XP).map(([g, v]) => `${g} ${xp(v)}`).join('、')
+  const reentry = [
+    ...REENTRY_TIERS.map((t, i) => `${i === 0 ? '' : `${REENTRY_TIERS[i - 1].withinMinutes}–`}${t.withinMinutes} 分鐘內 ${xp(t.xp)}`),
+    `${REENTRY_TIERS.at(-1)!.withinMinutes} 分鐘以上不扣`,
+  ].join('、')
   const breaks = BREAK_STREAK_FACTORS.map((f, i) => `第 ${i + 1}${i === BREAK_STREAK_FACTORS.length - 1 ? '+' : ''} 筆 ×${f}`).join('、')
 
   return (
@@ -421,7 +427,7 @@ function RulesDialog({ onClose }: { onClose: () => void }) {
           <Rule label="評級" text={grades} />
           <Rule label="進場前情緒 4–5（平靜）" value={POSITION_XP.calmBefore} />
           <Rule label="進場前情緒 1–2（焦躁）" value={POSITION_XP.agitatedBefore} />
-          <Rule label="出場後情緒比進場前掉 2 級以上" value={POSITION_XP.emotionCrash} />
+          <Rule label={`出場後情緒 1–${AGITATED_AFTER_MAX}（焦躁），同帳號再進場的間隔`} text={reentry} />
           <Rule label="每個錯誤標籤" value={POSITION_XP.mistake} />
           <Rule label={`嚴重錯誤（${SEVERE_MISTAKES.join('、')}）`} value={POSITION_XP.severeMistake} />
         </RuleSection>

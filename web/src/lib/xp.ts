@@ -16,12 +16,29 @@ export const POSITION_XP = {
   brokePlan: -150,
   calmBefore: 10, // emotionBefore >= 4
   agitatedBefore: -30, // emotionBefore <= 2
-  emotionCrash: -30, // emotionAfter at least 2 below emotionBefore
   mistake: -40,
   severeMistake: -100,
 } as const
 
 export const GRADE_XP: Record<string, number> = { 'A+': 30, A: 20, B: 0, C: -100 }
+
+/**
+ * Re-entering soon after leaving a position agitated (emotionAfter <= 2), on
+ * the same account in any contract. Tiers are checked in order; a gap of the
+ * last `withinMinutes` or more goes unpunished. The emotion after exit itself
+ * is never scored: it mostly follows the outcome, and P&L must not count.
+ */
+export const AGITATED_AFTER_MAX = 2
+export const REENTRY_TIERS = [
+  { withinMinutes: 1, xp: -100 },
+  { withinMinutes: 5, xp: -50 },
+  { withinMinutes: 15, xp: -20 },
+] as const
+
+/** Penalty for re-entering `gapMinutes` after an agitated exit, or null if none. */
+export function reentryPenalty(gapMinutes: number): number | null {
+  return REENTRY_TIERS.find((t) => gapMinutes < t.withinMinutes)?.xp ?? null
+}
 
 export const SEVERE_MISTAKES = ['報復單', '加大部位', '移動停損']
 
@@ -170,16 +187,36 @@ export function isClean(p: Position): boolean {
   return p.followedPlan === true && splitMulti(p.mistakes).length === 0 && p.grade !== 'C'
 }
 
-function scorePosition(p: Position): XpItem[] {
+/** Agitated exit of the same account that closed last before `p` opened, with the gap in minutes. */
+function agitatedExitBefore(p: Position, earlier: Position[]): { gapMinutes: number } | null {
+  const opened = Date.parse(p.openedAt)
+  let last: Position | null = null
+  let lastClosed = -Infinity
+  for (const q of earlier) {
+    if (q.accountName !== p.accountName) continue
+    const closed = Date.parse(q.closedAt)
+    if (closed <= opened && closed > lastClosed) {
+      last = q
+      lastClosed = closed
+    }
+  }
+  if (!last || last.emotionAfter == null || last.emotionAfter > AGITATED_AFTER_MAX) return null
+  return { gapMinutes: (opened - lastClosed) / 60000 }
+}
+
+const fmtMinutes = (m: number) => (m < 1 ? `${Math.round(m * 60)} 秒` : `${Number(m.toFixed(1))} 分鐘`)
+
+function scorePosition(p: Position, earlier: Position[]): XpItem[] {
   const items: XpItem[] = [{ label: '完成覆盤', xp: POSITION_XP.journaled }]
   items.push(p.followedPlan ? { label: '照計畫', xp: POSITION_XP.followedPlan } : { label: '沒照計畫', xp: POSITION_XP.brokePlan })
   const g = GRADE_XP[p.grade ?? ''] ?? 0
   if (g !== 0) items.push({ label: `評級 ${p.grade}`, xp: g })
   const before = p.emotionBefore ?? null
-  const after = p.emotionAfter ?? null
   if (before != null && before >= 4) items.push({ label: '進場前平靜', xp: POSITION_XP.calmBefore })
   if (before != null && before <= 2) items.push({ label: '進場前焦躁', xp: POSITION_XP.agitatedBefore })
-  if (before != null && after != null && after - before <= -2) items.push({ label: '情緒崩跌', xp: POSITION_XP.emotionCrash })
+  const exit = agitatedExitBefore(p, earlier)
+  const penalty = exit && reentryPenalty(exit.gapMinutes)
+  if (exit && penalty != null) items.push({ label: `焦躁出場後 ${fmtMinutes(exit.gapMinutes)}就再進場`, xp: penalty })
   for (const m of splitMulti(p.mistakes)) {
     items.push(SEVERE_MISTAKES.includes(m) ? { label: `嚴重錯誤：${m}`, xp: POSITION_XP.severeMistake } : { label: `錯誤：${m}`, xp: POSITION_XP.mistake })
   }
@@ -219,6 +256,8 @@ export function computeProgress(positions: Position[], journal: JournalEntry[], 
   let journaled = 0
   let pending = 0
   let nyAmClean = 0
+  // Every position replayed so far, journaled or not: an agitated exit counts even if unjournaled.
+  const seen: Position[] = []
   const counts = { revenge: 0, gambler: 0, stopMover: 0, c: 0 }
 
   const unlock = (id: string, day: string) => {
@@ -234,6 +273,7 @@ export function computeProgress(positions: Position[], journal: JournalEntry[], 
 
     for (const p of list) {
       if (!isJournaled(p)) {
+        seen.push(p)
         pending++
         dayPending = true
         continue
@@ -253,7 +293,8 @@ export function computeProgress(positions: Position[], journal: JournalEntry[], 
       breakStreak = p.followedPlan ? 0 : breakStreak + 1
       if (!(p.grade === 'A' || p.grade === 'A+') || !clean) dayAllTop = false
 
-      const items = scorePosition(p)
+      const items = scorePosition(p, seen)
+      seen.push(p)
       let plus = items.filter((i) => i.xp > 0).reduce((s, i) => s + i.xp, 0)
       let minus = items.filter((i) => i.xp < 0).reduce((s, i) => s + i.xp, 0)
       if (clean && cleanStreak > 1) {
