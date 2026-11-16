@@ -66,6 +66,14 @@ gas/   Google Apps Script 後端（TypeScript → esbuild 打包 → clasp 推�
 - 計分起點（既往不究）：`Settings` 工作表的 `xpStartDate`，這天之前的交易日完全不計分，也不算待覆盤。存在試算表是為了讓手機和電腦一致
 - 裝備的封號存在 localStorage（`sweeplog.title`）
 
+### 被掃與補進場（`web/src/lib/sweep.ts`）
+- `exitKind` 自動判斷部位是不是被停損單打出場：出場價在停損價 4 tick 以內才算。停損在虧損那一側是「被掃停損」，在進場價或獲利那一側是「被掃保本」。使用者不用手動選類型
+- 被掃的部位才顯示「出場後」欄位（全部選填）：`sweepDepth`（掃過停損幾點）、`afterSweep`（之後走勢）、`beTrigger`（只有被掃保本才有：點數 / N字結構）。存的是中文字串，顯示文字由 `sweepOptionLabel` 套上設定的點數
+- 補進場不存進試算表，前端用 `reentryIds` 算：同一天、同帳號、同商品同方向，虧損出場後 `reentryMinutes` 分鐘內再進場
+- `beMovePoints`（預設 30）和 `reentryMinutes`（預設 5）存在 `Settings` 工作表，設定頁可以改
+- 總覽頁的「被掃分析」假設 1R 金額不變（停損放寬就減少口數）來重算總 R；沒填欄位的被掃停損一律當作救不回來
+- 這些都**不影響經驗值**（之後走勢是結果，不是過程）
+
 ### 截圖
 - 上傳前會在瀏覽器壓縮（最長邊 1920px、轉 WebP），存到 Drive 的 `sweeplog/YYYY/MM/`
 - 截圖和部位是多對多關係（`PositionScreenshots`），一張圖可以涵蓋好幾筆交易
@@ -82,7 +90,7 @@ gas/   Google Apps Script 後端（TypeScript → esbuild 打包 → clasp 推�
 | DailyJournal | `date\|accountName` | 每日日誌 |
 | Screenshots | id (UUID) | Drive 檔案 ID、日期、說明 |
 | PositionScreenshots | `positionId\|screenshotId` | 關聯表 |
-| Settings | key | `options`：下拉選項的 JSON；`xpStartDate`：經驗值計分起點 |
+| Settings | key | `options`：下拉選項的 JSON；`xpStartDate`：經驗值計分起點；`beMovePoints`、`reentryMinutes`：見「被掃與補進場」 |
 | Accounts | accountName | 沒有使用（使用者決定不做 Topstep 規則追蹤） |
 
 **修改結構時**：在 `schema.ts` 新增欄位，部署 GAS 後請使用者到網頁「設定」頁按「建立 / 檢查工作表」。已經有資料的工作表只會在最後面補上新欄位，不會刪除或重新排列；沒有資料的工作表會重建標題列。**不要改名或刪除已經有資料的欄位**。
@@ -132,6 +140,8 @@ agent 通常拿不到使用者的 token，而且不能把真實交易資料放�
 - 截圖用「知道連結的人可查看」的方式顯示（方案 A）
 - 在交易列表點一筆交易，會直接進到那天並展開那筆
 - 拿掉了「被掃的流動性」欄位（`liquiditySwept`），前端、GAS 白名單和 `schema.ts` 都已移除，試算表那欄由使用者手動刪除
+- 日誌拿掉了「關鍵價位」（`keyLevels`）和「交易計畫」（`plan`），只從前端移除。`schema.ts` 保留這兩欄，因為 `keyLevels` 有一筆舊資料
+- 評級規則（大/中/小格局）寫在 `web/src/lib/options.ts` 的 `GRADE_RULES`，評級旁的 ? 會顯示
 
 ## 程式慣例
 

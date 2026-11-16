@@ -2,8 +2,15 @@ import { useState } from 'react'
 import { ChipMulti, ChipSelect, FormRow, NumberInput, Scale, TextArea, YesNo } from '@/components/form'
 import { Button, ErrorBox } from '@/components/ui'
 import { money, rMultiple } from '@/lib/format'
-import { joinMulti, splitMulti, type JournalOptions } from '@/lib/options'
-import { useUpdatePosition } from '@/lib/queries'
+import { GRADE_LAYERS, GRADE_RULES, joinMulti, splitMulti, type JournalOptions } from '@/lib/options'
+import { useSweepSettings, useUpdatePosition } from '@/lib/queries'
+import {
+  AFTER_SWEEP_OPTIONS,
+  BE_TRIGGER_OPTIONS,
+  EXIT_KIND_LABEL,
+  exitKind,
+  sweepOptionLabel,
+} from '@/lib/sweep'
 import { positionR, type Position, type PositionManual } from '@/lib/types'
 import { missingJournalFields } from '@/lib/xp'
 
@@ -25,6 +32,9 @@ function toDraft(p: Position): Draft {
     grade: p.grade ?? null,
     notes: p.notes ?? null,
     lesson: p.lesson ?? null,
+    sweepDepth: p.sweepDepth ?? null,
+    afterSweep: p.afterSweep ?? null,
+    beTrigger: p.beTrigger ?? null,
   }
 }
 
@@ -32,6 +42,8 @@ function toDraft(p: Position): Draft {
 export function PositionJournal({ position, options }: { position: Position; options: JournalOptions }) {
   const [draft, setDraft] = useState<Draft>(() => toDraft(position))
   const update = useUpdatePosition()
+  const sweep = useSweepSettings()
+  const kind = exitKind(position)
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => {
     update.reset()
     setDraft((d) => ({ ...d, [k]: v }))
@@ -57,7 +69,7 @@ export function PositionJournal({ position, options }: { position: Position; opt
         <FormRow label="Setup">
           <ChipSelect options={options.setups} value={draft.setup} onChange={(v) => set('setup', v)} />
         </FormRow>
-        <FormRow label="評級" required>
+        <FormRow label="評級" required hint={<GradeRules />}>
           <ChipSelect options={options.grades} value={draft.grade} onChange={(v) => set('grade', v)} />
         </FormRow>
         <FormRow label="大週期方向">
@@ -104,6 +116,38 @@ export function PositionJournal({ position, options }: { position: Position; opt
         />
       </FormRow>
 
+      {kind && (
+        <section className="space-y-3 rounded-md border border-border/60 p-3">
+          <h3 className="text-xs font-medium text-accent">出場後（{EXIT_KIND_LABEL[kind]}）· 選填</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormRow label={kind === 'stop' ? '掃過停損幾點' : '掃過保本幾點'}>
+              <div className="flex items-center gap-2">
+                <NumberInput value={draft.sweepDepth} onChange={(v) => set('sweepDepth', v)} placeholder="例：3" />
+                <span className="text-xs text-muted">點</span>
+              </div>
+            </FormRow>
+            {kind === 'breakeven' && (
+              <FormRow label="移保本依據">
+                <ChipSelect
+                  options={BE_TRIGGER_OPTIONS}
+                  value={draft.beTrigger}
+                  onChange={(v) => set('beTrigger', v)}
+                  format={(o) => sweepOptionLabel(o, sweep)}
+                />
+              </FormRow>
+            )}
+            <FormRow label="之後走勢">
+              <ChipSelect
+                options={AFTER_SWEEP_OPTIONS[kind]}
+                value={draft.afterSweep}
+                onChange={(v) => set('afterSweep', v)}
+                format={(o) => sweepOptionLabel(o, sweep)}
+              />
+            </FormRow>
+          </div>
+        </section>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2">
         <FormRow label="筆記">
           <TextArea
@@ -134,5 +178,21 @@ export function PositionJournal({ position, options }: { position: Position; opt
       </div>
       {update.isError && <ErrorBox message={update.error.message} />}
     </form>
+  )
+}
+
+function GradeRules() {
+  return (
+    <span className="block space-y-2">
+      <span className="block space-y-1">
+        {GRADE_RULES.map((r) => (
+          <span key={r.grade} className="flex gap-2">
+            <span className="w-6 shrink-0 font-medium text-accent">{r.grade}</span>
+            <span>{r.rule}</span>
+          </span>
+        ))}
+      </span>
+      <span className="block text-muted">{GRADE_LAYERS}</span>
+    </span>
   )
 }

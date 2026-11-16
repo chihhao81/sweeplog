@@ -77,7 +77,7 @@ export function JournalPage() {
                       {r.entry.followedDailyRules === false && <span className="text-loss">違反規則</span>}
                     </div>
                     <p className="mt-1 truncate text-sm text-muted">
-                      {r.entry.wentWrong || r.entry.wentWell || r.entry.plan || '（沒有文字內容）'}
+                      {r.entry.wentWrong || r.entry.wentWell || '（沒有文字內容）'}
                     </p>
                   </>
                 ) : (

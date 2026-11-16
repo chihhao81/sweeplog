@@ -2,10 +2,11 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { BreakdownTable } from '@/components/charts/BreakdownTable'
 import { EquityChart } from '@/components/charts/EquityChart'
 import { PnlCalendar } from '@/components/charts/PnlCalendar'
+import { SweepAnalysisCard } from '@/components/SweepAnalysisCard'
 import { Card, EmptyState, ErrorBox, PageHeader, Spinner } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { money, pnlClass, rMultiple } from '@/lib/format'
-import { usePositions } from '@/lib/queries'
+import { usePositions, useReentryIds, useSweepSettings } from '@/lib/queries'
 import { SESSION_ORDER } from '@/lib/sessions'
 import { loadConnection } from '@/lib/settings'
 import type { Position } from '@/lib/types'
@@ -20,16 +21,28 @@ const PERIODS = [
 ] as const
 type PeriodId = (typeof PERIODS)[number]['id']
 
-const DIM_ORDER: Partial<Record<Dimension, string[]>> = {
+// 'reentry' needs the re-entry set, so it is built here rather than in DIMENSIONS.
+type DimId = Dimension | 'reentry'
+const REENTRY = '補進場'
+const NORMAL_ENTRY = '一般進場'
+
+const DIM_ORDER: Partial<Record<DimId, string[]>> = {
   session: SESSION_ORDER,
   weekday: WEEKDAY_ORDER,
   grade: ['A+', 'A', 'B', 'C'],
+  reentry: [NORMAL_ENTRY, REENTRY],
 }
 
 export function DashboardPage() {
   const positions = usePositions()
   const [period, setPeriod] = useState<PeriodId>('all')
-  const [dim, setDim] = useState<Dimension>('setup')
+  const [dim, setDim] = useState<DimId>('setup')
+  const reentry = useReentryIds()
+  const sweep = useSweepSettings()
+  const dims = useMemo((): Record<DimId, DimensionDef> => ({
+    ...DIMENSIONS,
+    reentry: { label: '補進場', keys: (p: Position) => [reentry.has(p.positionId) ? REENTRY : NORMAL_ENTRY] },
+  }), [reentry])
 
   const filtered = useMemo(() => {
     const cutoff = cutoffDay(period)
@@ -42,8 +55,8 @@ export function DashboardPage() {
   const months = useMemo(() => [...new Set(filtered.map((p) => p.tradeDay.slice(0, 7)))].sort().reverse(), [filtered])
   const rows = useMemo(() => {
     const order = dim === 'hour' ? hourOrder(filtered) : DIM_ORDER[dim]
-    return breakdown(filtered, DIMENSIONS[dim].keys, order)
-  }, [filtered, dim])
+    return breakdown(filtered, dims[dim].keys, order)
+  }, [filtered, dim, dims])
 
   if (!loadConnection()) return <NeedsSetup />
 
@@ -112,14 +125,21 @@ export function DashboardPage() {
                   <Segmented
                     value={dim}
                     onChange={setDim}
-                    options={(Object.keys(DIMENSIONS) as Dimension[]).map((d) => ({ id: d, label: DIMENSIONS[d].label }))}
+                    options={(Object.keys(dims) as DimId[]).map((d) => ({ id: d, label: dims[d].label }))}
                   />
                 </div>
-                <BreakdownTable rows={rows} formatKey={groupFormatter(DIMENSIONS[dim], filtered)} />
+                <BreakdownTable rows={rows} formatKey={groupFormatter(dims[dim], filtered)} />
                 {dim === 'mistakes' && (
                   <p className="mt-2 text-xs text-muted">一筆部位有多個錯誤標籤時，會分別計入每個標籤</p>
                 )}
+                {dim === 'reentry' && (
+                  <p className="mt-2 text-xs text-muted">
+                    補進場＝同一天、同商品同方向，虧損出場後 {sweep.reentryMinutes} 分鐘內再進場（可在設定頁修改）
+                  </p>
+                )}
               </Card>
+
+              <SweepAnalysisCard positions={filtered} settings={sweep} />
             </>
           )}
         </div>

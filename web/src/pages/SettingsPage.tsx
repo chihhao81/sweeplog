@@ -3,6 +3,7 @@ import { CheckCircle2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { BackupCard } from '@/components/BackupCard'
 import { OptionsEditor } from '@/components/OptionsEditor'
+import { SweepSettingsCard } from '@/components/SweepSettingsCard'
 import { Button, Card, ErrorBox, Field, PageHeader } from '@/components/ui'
 import { api } from '@/lib/api'
 import { clearConnection, loadConnection, saveConnection } from '@/lib/settings'
@@ -121,6 +122,7 @@ export function SettingsPage() {
         </Card>
         {saved && <BackupCard />}
         {saved && <OptionsEditor />}
+        {saved && <SweepSettingsCard />}
       </div>
     </>
   )

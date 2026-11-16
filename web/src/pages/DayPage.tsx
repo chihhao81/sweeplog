@@ -9,7 +9,7 @@ import { PositionShots, ScreenshotPanel, type UploadRequest } from '@/components
 import { Card, EmptyState, ErrorBox, Spinner } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { dayLabel, duration, money, pnlClass, price, timeOf } from '@/lib/format'
-import { groupByDay, useDayTrades, useOptions, usePositions, useScreenshots } from '@/lib/queries'
+import { groupByDay, useDayTrades, useOptions, usePositions, useReentryIds, useScreenshots } from '@/lib/queries'
 import { lastAccount, loadConnection } from '@/lib/settings'
 import type { Screenshot, Trade } from '@/lib/types'
 import { NeedsSetup } from './TradesPage'
@@ -27,6 +27,7 @@ function DayView({ date, initialOpen }: { date: string; initialOpen: string | nu
   const trades = useDayTrades(date)
   const options = useOptions()
   const screenshots = useScreenshots(date)
+  const reentry = useReentryIds()
   const [open, setOpen] = useState<string | null>(initialOpen)
   const scrolled = useRef(false)
   const [request, setRequest] = useState<UploadRequest | null>(null)
@@ -108,7 +109,12 @@ function DayView({ date, initialOpen }: { date: string; initialOpen: string | nu
                       onClick={() => setOpen(expanded ? null : p.positionId)}
                       aria-expanded={expanded}
                     >
-                      <PositionRow p={p} shotCount={shotsByPosition.get(p.positionId)?.length} className="flex-1 pr-1" />
+                      <PositionRow
+                        p={p}
+                        shotCount={shotsByPosition.get(p.positionId)?.length}
+                        reentry={reentry.has(p.positionId)}
+                        className="flex-1 pr-1"
+                      />
                       <ChevronDown
                         className={cn('mr-3 size-4 shrink-0 text-muted transition-transform', expanded && 'rotate-180')}
                       />

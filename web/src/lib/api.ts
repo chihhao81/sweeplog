@@ -107,4 +107,6 @@ export const api = {
 export interface Settings {
   /** YYYY-MM-DD; XP ignores trade days before it. */
   xpStartDate?: string | null
+  beMovePoints?: string | null
+  reentryMinutes?: string | null
 }

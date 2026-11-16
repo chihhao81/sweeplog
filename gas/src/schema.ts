@@ -111,6 +111,11 @@ export const SHEETS = {
       grade: 'text',
       notes: 'text',
       lesson: 'text',
+      // After a stop-out or breakeven-stop exit: points the swing went past the stop,
+      // what price did next, and (breakeven only) what triggered the move to breakeven.
+      sweepDepth: 'number',
+      afterSweep: 'text',
+      beTrigger: 'text',
       importedAt: 'text',
       updatedAt: 'text',
     },

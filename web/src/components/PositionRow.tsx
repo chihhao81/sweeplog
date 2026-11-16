@@ -18,7 +18,18 @@ export function SideBadge({ side }: { side: Position['side'] }) {
 }
 
 /** One position as a compact two-line row; works on phone and desktop. */
-export function PositionRow({ p, shotCount, className }: { p: Position; shotCount?: number; className?: string }) {
+export function PositionRow({
+  p,
+  shotCount,
+  reentry = false,
+  className,
+}: {
+  p: Position
+  shotCount?: number
+  /** Opened shortly after a losing exit (lib/sweep.ts reentryIds). */
+  reentry?: boolean
+  className?: string
+}) {
   const r = positionR(p)
   return (
     <div className={cn('flex items-center gap-3 px-4 py-3', className)}>
@@ -30,6 +41,7 @@ export function PositionRow({ p, shotCount, className }: { p: Position; shotCoun
           {p.maxSize > 1 && <span className="text-xs text-muted">×{p.maxSize}</span>}
           <span className="hidden text-xs text-muted sm:inline">{sessionLabel(p.session, new Date(p.openedAt))}</span>
           {p.setup && <span className="truncate text-xs text-accent">{p.setup}</span>}
+          {reentry && <span className="shrink-0 rounded bg-warn/15 px-1.5 text-xs text-warn">補進場</span>}
           {shotCount ? (
             <span className="inline-flex items-center gap-0.5 text-xs text-muted">
               <Image className="size-3" />

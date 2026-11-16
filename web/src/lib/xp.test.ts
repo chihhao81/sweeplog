@@ -31,7 +31,7 @@ function pos(over: Partial<Position>): Position {
 
 const good = (over: Partial<Position> = {}) => pos({ grade: 'A', followedPlan: true, emotionBefore: 3, ...over })
 const entry = (over: Partial<JournalEntry>): JournalEntry => ({
-  date: '2026-10-20', accountName: 'A', bias: null, keyLevels: null, newsEvents: null, plan: null,
+  date: '2026-10-20', accountName: 'A', bias: null, newsEvents: null,
   sleep: null, energy: null, followedDailyRules: null, wentWell: null, wentWrong: null, tomorrow: null, ...over,
 })
 const positionTotals = (r: ReturnType<typeof computeProgress>) => r.ledger.filter((e) => e.position).map((e) => e.total)
@@ -113,7 +113,7 @@ describe('computeProgress', () => {
 
   it('settles the day: journal, rules, overtrading and clean-day streak', () => {
     const day = Array.from({ length: 8 }, () => good())
-    const r = computeProgress(day, [entry({ plan: '等掃亞盤低', followedDailyRules: false })])
+    const r = computeProgress(day, [entry({ wentWell: '等到亞盤低才進場', followedDailyRules: false })])
     const settle = r.ledger.at(-1)!
     expect(settle.position).toBeNull()
     expect(settle.items.map((i) => i.xp)).toEqual([20, -150, -100, 20])

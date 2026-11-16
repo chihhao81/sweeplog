@@ -13,9 +13,7 @@ function emptyEntry(date: string, accountName: string): Draft {
     date,
     accountName,
     bias: null,
-    keyLevels: null,
     newsEvents: null,
-    plan: null,
     sleep: null,
     energy: null,
     followedDailyRules: null,
@@ -61,7 +59,7 @@ function JournalForm({
     setDirty(true)
     setDraft((d) => ({ ...d, [k]: v }))
   }
-  const text = (k: 'keyLevels' | 'newsEvents' | 'plan' | 'wentWell' | 'wentWrong' | 'tomorrow') => ({
+  const text = (k: 'newsEvents' | 'wentWell' | 'wentWrong' | 'tomorrow') => ({
     value: draft[k] ?? '',
     onChange: (e: { target: { value: string } }) => set(k, e.target.value || null),
   })
@@ -88,12 +86,6 @@ function JournalForm({
             </FormRow>
             <FormRow label="新聞事件">
               <TextArea rows={1} placeholder="CPI 20:30、FOMC…" {...text('newsEvents')} />
-            </FormRow>
-            <FormRow label="關鍵價位">
-              <TextArea placeholder="前日高低、亞盤高低…" {...text('keyLevels')} />
-            </FormRow>
-            <FormRow label="交易計畫">
-              <TextArea placeholder="等什麼條件才進場" {...text('plan')} />
             </FormRow>
             <FormRow label="睡眠品質">
               <Scale value={draft.sleep} onChange={(v) => set('sleep', v)} low="差" high="好" />

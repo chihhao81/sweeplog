@@ -5,11 +5,12 @@ import { PositionRow } from '@/components/PositionRow'
 import { Card, EmptyState, ErrorBox, PageHeader, Spinner } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { dayLabel, money, pnlClass } from '@/lib/format'
-import { groupByDay, usePositions } from '@/lib/queries'
+import { groupByDay, usePositions, useReentryIds } from '@/lib/queries'
 import { loadConnection } from '@/lib/settings'
 
 export function TradesPage() {
   const positions = usePositions()
+  const reentry = useReentryIds()
   const months = useMemo(
     () => [...new Set((positions.data ?? []).map((p) => p.tradeDay.slice(0, 7)))],
     [positions.data],
@@ -83,7 +84,7 @@ export function TradesPage() {
                     to={`/day/${d.day}?open=${p.positionId}`}
                     className="block border-b border-border/50 last:border-0 hover:bg-surface-2/60"
                   >
-                    <PositionRow p={p} />
+                    <PositionRow p={p} reentry={reentry.has(p.positionId)} />
                   </Link>
                 ))}
               </Card>

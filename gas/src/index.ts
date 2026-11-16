@@ -171,8 +171,12 @@ function json(body: unknown) {
   )
 }
 
-/** Keys writable through saveSetting. `xpStartDate`: XP only counts trade days from this date on. */
-const SETTING_KEYS = ['xpStartDate']
+/**
+ * Keys writable through saveSetting. `xpStartDate`: XP only counts trade days from this date on.
+ * `beMovePoints`: points in profit at which the stop goes to breakeven. `reentryMinutes`: an entry
+ * this soon after a losing exit counts as a re-entry.
+ */
+const SETTING_KEYS = ['xpStartDate', 'beMovePoints', 'reentryMinutes']
 
 const MANUAL_POSITION_FIELDS = [
   'riskOverride',
@@ -187,6 +191,9 @@ const MANUAL_POSITION_FIELDS = [
   'grade',
   'notes',
   'lesson',
+  'sweepDepth',
+  'afterSweep',
+  'beTrigger',
 ]
 
 function pick(row: Row, keys: string[]): Row {

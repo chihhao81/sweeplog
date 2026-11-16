@@ -1,19 +1,51 @@
 import type { ReactNode, TextareaHTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
 
-export function FormRow({ label, required = false, children }: { label: string; required?: boolean; children: ReactNode }) {
+export function FormRow({
+  label,
+  required = false,
+  hint,
+  children,
+}: {
+  label: string
+  required?: boolean
+  /** Shown in a popover on hover (or tap / keyboard focus) of a "?" next to the label. */
+  hint?: ReactNode
+  children: ReactNode
+}) {
   return (
     <div>
-      <div className="mb-1.5 text-xs font-medium text-muted">
+      <div className="mb-1.5 flex items-center text-xs font-medium text-muted">
         {label}
         {required && (
           <span className="ml-0.5 text-warn" aria-label="必填">
             *
           </span>
         )}
+        {hint && <Hint label={`${label}說明`}>{hint}</Hint>}
       </div>
       {children}
     </div>
+  )
+}
+
+function Hint({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <span className="group relative ml-1.5 inline-flex">
+      <button
+        type="button"
+        aria-label={label}
+        className="flex size-4 items-center justify-center rounded-full border border-border text-[10px] leading-none text-muted hover:border-accent hover:text-accent focus-visible:border-accent focus-visible:text-accent focus-visible:outline-none"
+      >
+        ?
+      </button>
+      <span
+        role="tooltip"
+        className="invisible absolute top-full left-0 z-20 mt-1.5 w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-surface-2 p-3 text-xs font-normal text-fg opacity-0 shadow-lg transition-opacity group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100"
+      >
+        {children}
+      </span>
+    </span>
   )
 }
 

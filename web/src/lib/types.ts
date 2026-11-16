@@ -83,6 +83,10 @@ export interface PositionManual {
   grade: string | null
   notes: string | null
   lesson: string | null
+  /** Points the swing went past the stop after a stop-out (see lib/sweep.ts). */
+  sweepDepth: number | null
+  afterSweep: string | null
+  beTrigger: string | null
 }
 
 export type Position = PositionDerived & Partial<PositionManual> & { updatedAt?: string }
@@ -103,9 +107,7 @@ export interface JournalEntry {
   date: string
   accountName: string
   bias: string | null
-  keyLevels: string | null
   newsEvents: string | null
-  plan: string | null
   sleep: number | null
   energy: number | null
   followedDailyRules: boolean | null

@@ -26,3 +26,27 @@ export function contractRoot(contractName: string): string {
 export function pointValue(contractName: string): number | null {
   return POINT_VALUE[contractRoot(contractName)] ?? null
 }
+
+// Minimum price increment per contract, keyed by root symbol.
+const TICK_SIZE: Record<string, number> = {
+  MNQ: 0.25,
+  NQ: 0.25,
+  MES: 0.25,
+  ES: 0.25,
+  MYM: 1,
+  YM: 1,
+  M2K: 0.1,
+  RTY: 0.1,
+  MGC: 0.1,
+  GC: 0.1,
+  MCL: 0.01,
+  CL: 0.01,
+  MBT: 5,
+  MET: 0.5,
+  '6E': 0.00005,
+  M6E: 0.0001,
+}
+
+export function tickSize(contractName: string): number | null {
+  return TICK_SIZE[contractRoot(contractName)] ?? null
+}

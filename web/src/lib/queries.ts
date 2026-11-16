@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { api, type Settings } from './api'
 import { compressImage } from './image'
 import { withDefaults, type JournalOptions } from './options'
 import { loadConnection } from './settings'
+import { reentryIds, sweepSettings, type SweepSettings } from './sweep'
 import type { JournalEntry, Position, PositionManual, Screenshot } from './types'
 
 export function useOptions() {
@@ -174,4 +176,17 @@ export function useDeleteScreenshot(date: string) {
     mutationFn: (id: string) => api.deleteScreenshot(id),
     onSuccess: ({ id }) => patchShots(qc, date, (list) => list.filter((s) => s.id !== id)),
   })
+}
+
+/** Breakeven points and re-entry window, with defaults until set. */
+export function useSweepSettings(): SweepSettings {
+  const settings = useSettings()
+  return useMemo(() => sweepSettings(settings.data), [settings.data])
+}
+
+/** IDs of positions that count as a re-entry after a losing exit (see lib/sweep.ts). */
+export function useReentryIds(): Set<string> {
+  const positions = usePositions()
+  const { reentryMinutes } = useSweepSettings()
+  return useMemo(() => reentryIds(positions.data ?? [], reentryMinutes), [positions.data, reentryMinutes])
 }
