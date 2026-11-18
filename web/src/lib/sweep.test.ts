@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AFTER_TARGET, analyzeSweeps, exitKind, reentryIds, sweepSettings } from './sweep'
+import { AFTER_TARGET, analyzeSweeps, exitCategory, reentryIds, sweepSettings } from './sweep'
 import type { Position } from './types'
 
 let seq = 0
@@ -28,23 +28,23 @@ function pos(over: Partial<Position>): Position {
   }
 }
 
-describe('exitKind', () => {
-  it('reads a stop on the losing side as a stop sweep, allowing slippage', () => {
-    expect(exitKind(pos({ avgEntry: 28341.75, avgExit: 28330.25, stopPrice: 28330.25, targetPrice: 28441.75 }))).toBe('stop')
-    // 3 ticks of slippage
-    expect(exitKind(pos({ avgEntry: 28327, avgExit: 28315.75, stopPrice: 28315 }))).toBe('stop')
-    expect(exitKind(pos({ side: 'Short', avgEntry: 29425, avgExit: 29435.5, stopPrice: 29435 }))).toBe('stop')
+describe('exitCategory', () => {
+  it('sorts by P&L and prices, whatever order closed the position', () => {
+    // Stop with slippage, and a daily-limit flatten before the stop: both just losses.
+    expect(exitCategory(pos({ avgEntry: 28341.75, avgExit: 28330.25, stopPrice: 28330.25, netPnl: -24 }))).toBe('loss')
+    expect(exitCategory(pos({ side: 'Short', avgEntry: 27283.25, avgExit: 27290.75, stopPrice: 27293.25, netPnl: -16 }))).toBe('loss')
   })
 
-  it('reads a stop at entry or in profit as a breakeven sweep', () => {
-    expect(exitKind(pos({ avgEntry: 28328.5, avgExit: 28328.25, stopPrice: 28328.75 }))).toBe('breakeven')
-    expect(exitKind(pos({ side: 'Short', avgEntry: 100, avgExit: 90, stopPrice: 90 }))).toBe('breakeven')
+  it('treats exits within 4 ticks of the entry as breakeven, fees included', () => {
+    expect(exitCategory(pos({ avgEntry: 28328.5, avgExit: 28328.25, netPnl: -1.72 }))).toBe('breakeven')
+    expect(exitCategory(pos({ avgEntry: 27973.75, avgExit: 27974.5, netPnl: 0.28 }))).toBe('breakeven')
   })
 
-  it('ignores exits away from the stop', () => {
-    expect(exitKind(pos({ avgEntry: 28214, avgExit: 28314, stopPrice: 28215, targetPrice: 28314 }))).toBeNull()
-    expect(exitKind(pos({ avgEntry: 100, avgExit: 95, stopPrice: 90 }))).toBeNull()
-    expect(exitKind(pos({ avgEntry: 100, avgExit: 90, stopPrice: null }))).toBeNull()
+  it('splits wins into target hits and exits short of the target', () => {
+    expect(exitCategory(pos({ avgEntry: 28214, avgExit: 28314, targetPrice: 28314, netPnl: 198 }))).toBe('target')
+    expect(exitCategory(pos({ side: 'Short', avgEntry: 100, avgExit: 50, targetPrice: 50.5, netPnl: 99 }))).toBe('target')
+    expect(exitCategory(pos({ avgEntry: 100, avgExit: 130, targetPrice: 200, netPnl: 59 }))).toBe('profit')
+    expect(exitCategory(pos({ avgEntry: 100, avgExit: 130, targetPrice: null, netPnl: 59 }))).toBe('profit')
   })
 })
 
@@ -82,8 +82,8 @@ describe('analyzeSweeps', () => {
 
   it('re-prices the sample for each wider stop at constant dollar risk', () => {
     const a = analyzeSweeps([swept, unfilled, winner], [3, 5])
-    expect(a.stopSweeps).toBe(2)
-    expect(a.stopSweepsFilled).toBe(1)
+    expect(a.losses).toBe(2)
+    expect(a.lossesFilled).toBe(1)
     expect(a.actualR).toBeCloseTo(3)
     // 3 pt buffer: the 3 pt sweep still hits.
     expect(a.buffers[0].saved).toBe(0)
@@ -93,7 +93,16 @@ describe('analyzeSweeps', () => {
     expect(a.buffers[1].totalR).toBeCloseTo(100 / 15 - 1 + (5 * 10) / 15)
   })
 
-  it('groups breakeven sweeps by trigger', () => {
+  it('prices what early profit exits left before the target', () => {
+    const trailed = pos({ avgEntry: 100, avgExit: 130, targetPrice: 200, netPnl: 60, autoRisk: 20, beTrigger: '移動停利', afterSweep: AFTER_TARGET })
+    const kept = pos({ avgEntry: 100, avgExit: 130, targetPrice: 200, netPnl: 60, autoRisk: 20, afterSweep: '沒到目標' })
+    const p = analyzeSweeps([trailed, kept], []).profit
+    expect(p).toMatchObject({ count: 2, filled: 2, toTarget: 1 })
+    // target 10R − actual 3R
+    expect(p.avgMissedR).toBeCloseTo(7)
+  })
+
+  it('groups breakeven exits by trigger', () => {
     const be = pos({ avgEntry: 100, avgExit: 100, stopPrice: 100, beTrigger: '點數', afterSweep: AFTER_TARGET })
     const be2 = pos({ avgEntry: 100, avgExit: 100, stopPrice: 100 })
     expect(analyzeSweeps([be, be2], []).breakeven).toEqual([

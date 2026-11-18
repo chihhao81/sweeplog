@@ -66,12 +66,13 @@ gas/   Google Apps Script 後端（TypeScript → esbuild 打包 → clasp 推�
 - 計分起點（既往不究）：`Settings` 工作表的 `xpStartDate`，這天之前的交易日完全不計分，也不算待覆盤。存在試算表是為了讓手機和電腦一致
 - 裝備的封號存在 localStorage（`sweeplog.title`）
 
-### 被掃與補進場（`web/src/lib/sweep.ts`）
-- `exitKind` 自動判斷部位是不是被停損單打出場：出場價在停損價 4 tick 以內才算。停損在虧損那一側是「被掃停損」，在進場價或獲利那一側是「被掃保本」。使用者不用手動選類型
-- 被掃的部位才顯示「出場後」欄位（全部選填）：`sweepDepth`（掃過停損幾點）、`afterSweep`（之後走勢）、`beTrigger`（只有被掃保本才有：點數 / N字結構）。存的是中文字串，顯示文字由 `sweepOptionLabel` 套上設定的點數
+### 出場後與補進場（`web/src/lib/sweep.ts`）
+- 每筆部位都有可收合的「出場後（選填）」區塊，**不判斷**是哪張單平倉的（滑價、日風控平倉、停損單換張都會讓判斷出錯，使用者決定一律常駐）。有填內容的部位會自動展開
+- 欄位：`sweepDepth`（掃過停損幾點，不是被掃就留空）、`beTrigger`（停損移動依據：點數 / N字結構 / 移動停利）、`afterSweep`（之後走勢：到目標 / 到移保本條件 / 沒到目標）。存的是中文字串，顯示文字由 `sweepOptionLabel` 套上設定的點數
+- 統計時才用 `exitCategory` 依價格和損益分類：出場價在進場價 4 tick 內是保本，其他虧損是虧損，到目標價是到目標，其餘是「獲利但沒到目標」
 - 補進場不存進試算表，前端用 `reentryIds` 算：同一天、同帳號、同商品同方向，虧損出場後 `reentryMinutes` 分鐘內再進場
 - `beMovePoints`（預設 30）和 `reentryMinutes`（預設 5）存在 `Settings` 工作表，設定頁可以改
-- 總覽頁的「被掃分析」假設 1R 金額不變（停損放寬就減少口數）來重算總 R；沒填欄位的被掃停損一律當作救不回來
+- 總覽頁的「出場後分析」：虧損出場的停損放寬試算（假設 1R 金額不變，停損放寬就減少口數；沒填欄位的當作救不回來）、保本出場依停損移動依據分組、獲利但沒到目標的單之後到目標的比例與平均少賺的 R
 - 這些都**不影響經驗值**（之後走勢是結果，不是過程）
 
 ### 截圖
@@ -90,7 +91,7 @@ gas/   Google Apps Script 後端（TypeScript → esbuild 打包 → clasp 推�
 | DailyJournal | `date\|accountName` | 每日日誌 |
 | Screenshots | id (UUID) | Drive 檔案 ID、日期、說明 |
 | PositionScreenshots | `positionId\|screenshotId` | 關聯表 |
-| Settings | key | `options`：下拉選項的 JSON；`xpStartDate`：經驗值計分起點；`beMovePoints`、`reentryMinutes`：見「被掃與補進場」 |
+| Settings | key | `options`：下拉選項的 JSON；`xpStartDate`：經驗值計分起點；`beMovePoints`、`reentryMinutes`：見「出場後與補進場」 |
 | Accounts | accountName | 沒有使用（使用者決定不做 Topstep 規則追蹤） |
 
 **修改結構時**：在 `schema.ts` 新增欄位，部署 GAS 後請使用者到網頁「設定」頁按「建立 / 檢查工作表」。已經有資料的工作表只會在最後面補上新欄位，不會刪除或重新排列；沒有資料的工作表會重建標題列。**不要改名或刪除已經有資料的欄位**。

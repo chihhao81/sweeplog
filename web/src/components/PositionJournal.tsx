@@ -4,13 +4,7 @@ import { Button, ErrorBox } from '@/components/ui'
 import { money, rMultiple } from '@/lib/format'
 import { GRADE_LAYERS, GRADE_RULES, joinMulti, splitMulti, type JournalOptions } from '@/lib/options'
 import { useSweepSettings, useUpdatePosition } from '@/lib/queries'
-import {
-  AFTER_SWEEP_OPTIONS,
-  BE_TRIGGER_OPTIONS,
-  EXIT_KIND_LABEL,
-  exitKind,
-  sweepOptionLabel,
-} from '@/lib/sweep'
+import { AFTER_SWEEP_OPTIONS, BE_TRIGGER_OPTIONS, hasAfterExit, sweepOptionLabel } from '@/lib/sweep'
 import { positionR, type Position, type PositionManual } from '@/lib/types'
 import { missingJournalFields } from '@/lib/xp'
 
@@ -43,7 +37,6 @@ export function PositionJournal({ position, options }: { position: Position; opt
   const [draft, setDraft] = useState<Draft>(() => toDraft(position))
   const update = useUpdatePosition()
   const sweep = useSweepSettings()
-  const kind = exitKind(position)
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => {
     update.reset()
     setDraft((d) => ({ ...d, [k]: v }))
@@ -116,37 +109,34 @@ export function PositionJournal({ position, options }: { position: Position; opt
         />
       </FormRow>
 
-      {kind && (
-        <section className="space-y-3 rounded-md border border-border/60 p-3">
-          <h3 className="text-xs font-medium text-accent">出場後（{EXIT_KIND_LABEL[kind]}）· 選填</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            <FormRow label={kind === 'stop' ? '掃過停損幾點' : '掃過保本幾點'}>
-              <div className="flex items-center gap-2">
-                <NumberInput value={draft.sweepDepth} onChange={(v) => set('sweepDepth', v)} placeholder="例：3" />
-                <span className="text-xs text-muted">點</span>
-              </div>
-            </FormRow>
-            {kind === 'breakeven' && (
-              <FormRow label="移保本依據">
-                <ChipSelect
-                  options={BE_TRIGGER_OPTIONS}
-                  value={draft.beTrigger}
-                  onChange={(v) => set('beTrigger', v)}
-                  format={(o) => sweepOptionLabel(o, sweep)}
-                />
-              </FormRow>
-            )}
-            <FormRow label="之後走勢">
-              <ChipSelect
-                options={AFTER_SWEEP_OPTIONS[kind]}
-                value={draft.afterSweep}
-                onChange={(v) => set('afterSweep', v)}
-                format={(o) => sweepOptionLabel(o, sweep)}
-              />
-            </FormRow>
-          </div>
-        </section>
-      )}
+      {/* Always available; opens by itself once something is filled in. */}
+      <details className="group rounded-md border border-border/60 p-3" open={hasAfterExit(original)}>
+        <summary className="cursor-pointer text-xs font-medium text-accent">出場後（選填）</summary>
+        <div className="mt-3 grid gap-4 md:grid-cols-2">
+          <FormRow label="掃過停損幾點" hint="價格超過停損（或移動後的停損）幾點才回頭。不是被掃出場的就留空。">
+            <div className="flex items-center gap-2">
+              <NumberInput value={draft.sweepDepth} onChange={(v) => set('sweepDepth', v)} placeholder="例：3" />
+              <span className="text-xs text-muted">點</span>
+            </div>
+          </FormRow>
+          <FormRow label="停損移動依據" hint="停損移到保本或獲利那一側的原因。沒移過停損就留空。">
+            <ChipSelect
+              options={BE_TRIGGER_OPTIONS}
+              value={draft.beTrigger}
+              onChange={(v) => set('beTrigger', v)}
+              format={(o) => sweepOptionLabel(o, sweep)}
+            />
+          </FormRow>
+          <FormRow label="之後走勢">
+            <ChipSelect
+              options={AFTER_SWEEP_OPTIONS}
+              value={draft.afterSweep}
+              onChange={(v) => set('afterSweep', v)}
+              format={(o) => sweepOptionLabel(o, sweep)}
+            />
+          </FormRow>
+        </div>
+      </details>
 
       <div className="grid gap-4 md:grid-cols-2">
         <FormRow label="筆記">

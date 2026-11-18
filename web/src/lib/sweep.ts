@@ -1,28 +1,26 @@
-// Stop sweeps and re-entries. Nothing here touches XP: what price did after the
-// exit is outcome, not process.
+// After-exit review (sweeps, moved stops) and re-entries. Nothing here touches XP:
+// what price did after the exit is outcome, not process.
+//
+// The form fields are always available and optional; positions are only sorted into
+// categories for the stats, from prices and P&L, never by guessing which order closed them.
 
 import type { Settings } from './api'
 import { pointValue, tickSize } from './topstep/contracts'
 import { positionR, positionRisk, type Position } from './types'
 
-/** How a position ended at its stop: the original stop, or one already moved to breakeven or better. */
-export type ExitKind = 'stop' | 'breakeven'
-
-export const EXIT_KIND_LABEL: Record<ExitKind, string> = { stop: '被掃停損', breakeven: '被掃保本' }
+/** How a position ended, for the stats: at a loss, at breakeven, at the target, or in profit short of it. */
+export type ExitCategory = 'loss' | 'breakeven' | 'target' | 'profit'
 
 // Stored values of the manual fields (kept readable in the sheet).
 export const AFTER_TARGET = '到目標'
 export const AFTER_BE_LEVEL = '到移保本條件'
-export const AFTER_NO_RETURN = '沒回來'
 export const AFTER_MISSED_TARGET = '沒到目標'
 export const BE_BY_POINTS = '點數'
 export const BE_BY_N = 'N字結構'
+export const BE_BY_TRAILING = '移動停利'
 
-export const AFTER_SWEEP_OPTIONS: Record<ExitKind, string[]> = {
-  stop: [AFTER_TARGET, AFTER_BE_LEVEL, AFTER_NO_RETURN],
-  breakeven: [AFTER_TARGET, AFTER_MISSED_TARGET],
-}
-export const BE_TRIGGER_OPTIONS = [BE_BY_POINTS, BE_BY_N]
+export const AFTER_SWEEP_OPTIONS = [AFTER_TARGET, AFTER_BE_LEVEL, AFTER_MISSED_TARGET]
+export const BE_TRIGGER_OPTIONS = [BE_BY_POINTS, BE_BY_N, BE_BY_TRAILING]
 
 export interface SweepSettings {
   beMovePoints: number
@@ -42,7 +40,7 @@ export function sweepSettings(s: Settings | undefined): SweepSettings {
   }
 }
 
-/** Label for a stored option, e.g. "到移保本條件" → "到 +30 點或 N 字". */
+/** Label for a stored option, e.g. "點數" → "+30 點". */
 export function sweepOptionLabel(option: string, s: SweepSettings): string {
   if (option === AFTER_BE_LEVEL) return `到 +${s.beMovePoints} 點或 N 字，沒到目標`
   if (option === BE_BY_POINTS) return `+${s.beMovePoints} 點`
@@ -50,22 +48,23 @@ export function sweepOptionLabel(option: string, s: SweepSettings): string {
   return option
 }
 
-/** Stop fills slip; an exit within this many ticks of the stop counts as stopped out. */
-const STOP_SLIPPAGE_TICKS = 4
+/** Exits this close to the entry (or the target) count as at it; covers fees and rounding. */
+const NEAR_TICKS = 4
 
-/**
- * Whether the position was closed by its stop, and which kind. Topstep reports the stop's
- * last price, so a stop moved to entry or beyond reads as a breakeven sweep.
- */
-export function exitKind(p: Position): ExitKind | null {
-  if (p.stopPrice === null) return null
-  const tol = (tickSize(p.contractName) ?? 0.25) * STOP_SLIPPAGE_TICKS
-  const near = (price: number | null) => price !== null && Math.abs(p.avgExit - price) <= tol + 1e-9
-  if (!near(p.stopPrice)) return null
-  // A stop sitting on the target (rare) is a take-profit, not a sweep.
-  if (p.targetPrice !== null && near(p.targetPrice) && Math.abs(p.targetPrice - p.stopPrice) <= tol) return null
-  const losingSide = p.side === 'Long' ? p.stopPrice < p.avgEntry : p.stopPrice > p.avgEntry
-  return losingSide ? 'stop' : 'breakeven'
+export function exitCategory(p: Position): ExitCategory {
+  const tol = (tickSize(p.contractName) ?? 0.25) * NEAR_TICKS + 1e-9
+  if (Math.abs(p.avgExit - p.avgEntry) <= tol) return 'breakeven'
+  if (p.netPnl < 0) return 'loss'
+  if (p.targetPrice !== null) {
+    const reached = p.side === 'Long' ? p.avgExit >= p.targetPrice - tol : p.avgExit <= p.targetPrice + tol
+    if (reached) return 'target'
+  }
+  return 'profit'
+}
+
+/** Whether any after-exit field is filled, so the form section opens by itself. */
+export function hasAfterExit(p: Pick<Position, 'sweepDepth' | 'afterSweep' | 'beTrigger'>): boolean {
+  return p.sweepDepth != null || !!p.afterSweep || !!p.beTrigger
 }
 
 /**
@@ -88,7 +87,7 @@ export function reentryIds(positions: Position[], minutes: number): Set<string> 
   return out
 }
 
-/** Stop distance in points, from the dollar risk. */
+/** Stop distance in points, from the dollar risk (so a stop moved later does not matter). */
 function stopPoints(p: Position): number | null {
   const risk = positionRisk(p)
   const pv = pointValue(p.contractName)
@@ -96,35 +95,68 @@ function stopPoints(p: Position): number | null {
   return risk / (pv * p.maxSize)
 }
 
+/** R the position would have made at its target, before costs. */
+function targetR(p: Position): number | null {
+  const d = stopPoints(p)
+  return d === null || p.targetPrice === null ? null : Math.abs(p.targetPrice - p.avgEntry) / d
+}
+
 export interface BufferResult {
   buffer: number
-  /** Stop sweeps a stop this much wider would have survived and that then reached the target or the breakeven level. */
+  /** Losing exits a stop this much wider would have survived and that then reached the target or the breakeven level. */
   saved: number
   savedToTarget: number
   /** Sum of R over the sample with the wider stop, sizing down to keep 1R the same in dollars. */
   totalR: number
 }
 
+export interface TriggerGroup {
+  trigger: string
+  count: number
+  filled: number
+  toTarget: number
+}
+
 export interface SweepAnalysis {
-  stopSweeps: number
-  /** Stop sweeps with sweepDepth and afterSweep filled in. */
-  stopSweepsFilled: number
+  losses: number
+  /** Losing exits with sweepDepth and afterSweep filled in. */
+  lossesFilled: number
   /** Sample for the buffer test: positions with an R and a stop distance. */
   sampleCount: number
   actualR: number
   buffers: BufferResult[]
-  breakeven: { trigger: string; count: number; filled: number; toTarget: number }[]
+  breakeven: TriggerGroup[]
+  /** Exits in profit short of the target (trailed stop, manual exit). */
+  profit: TriggerGroup & {
+    /** Average R left on the table by the ones that went on to the target. */
+    avgMissedR: number | null
+  }
+}
+
+function byTrigger(group: Position[]): TriggerGroup[] {
+  return [...BE_TRIGGER_OPTIONS, null]
+    .map((t) => {
+      const g = group.filter((p) => (t === null ? !p.beTrigger : p.beTrigger === t))
+      return {
+        trigger: t ?? '未填',
+        count: g.length,
+        filled: g.filter((p) => !!p.afterSweep).length,
+        toTarget: g.filter((p) => p.afterSweep === AFTER_TARGET).length,
+      }
+    })
+    .filter((g) => g.count > 0)
 }
 
 /**
- * What a wider stop would have done, and how often breakeven stops get swept before the target.
+ * What a wider stop would have done, how breakeven stops fare, and what early profit exits cost.
  * The buffer test assumes 1R stays the same in dollars: a stop b points wider means a smaller
- * position, so every R shrinks by d / (d + b) except stop-outs, which still lose 1R. Stop sweeps
- * without sweepDepth / afterSweep count as not saved.
+ * position, so every R shrinks by d / (d + b) except losing exits, which still lose their R.
+ * Losing exits without sweepDepth / afterSweep count as not saved.
  */
 export function analyzeSweeps(positions: Position[], buffers: number[]): SweepAnalysis {
-  const kinds = new Map(positions.map((p) => [p.positionId, exitKind(p)]))
-  const stops = positions.filter((p) => kinds.get(p.positionId) === 'stop')
+  const cat = new Map(positions.map((p) => [p.positionId, exitCategory(p)]))
+  const of = (c: ExitCategory) => positions.filter((p) => cat.get(p.positionId) === c)
+  const losses = of('loss')
   const filled = (p: Position) => p.sweepDepth != null && !!p.afterSweep
 
   const sample = positions.flatMap((p) => {
@@ -138,44 +170,43 @@ export function analyzeSweeps(positions: Position[], buffers: number[]): SweepAn
     let saved = 0
     let savedToTarget = 0
     for (const { p, r, d } of sample) {
-      const scale = d / (d + b)
-      const kind = kinds.get(p.positionId)
-      const survives = kind === 'stop' && filled(p) && p.sweepDepth! < b
+      const loss = cat.get(p.positionId) === 'loss'
+      const survives = loss && filled(p) && p.sweepDepth! < b
       if (survives && p.afterSweep === AFTER_TARGET && p.targetPrice !== null) {
         saved++
         savedToTarget++
         total += Math.abs(p.targetPrice - p.avgEntry) / (d + b)
       } else if (survives && p.afterSweep === AFTER_BE_LEVEL) {
         saved++ // scratched at breakeven: 0R
-      } else if (kind === 'stop') {
+      } else if (loss) {
         total += r
       } else {
-        total += r * scale
+        total += r * (d / (d + b))
       }
     }
     return { buffer: b, saved, savedToTarget, totalR: total }
   })
 
-  const be = positions.filter((p) => kinds.get(p.positionId) === 'breakeven')
-  const triggers = [...BE_TRIGGER_OPTIONS, null]
-  const breakeven = triggers
-    .map((t) => {
-      const group = be.filter((p) => (t === null ? !p.beTrigger : p.beTrigger === t))
-      return {
-        trigger: t ?? '未填',
-        count: group.length,
-        filled: group.filter((p) => !!p.afterSweep).length,
-        toTarget: group.filter((p) => p.afterSweep === AFTER_TARGET).length,
-      }
-    })
-    .filter((g) => g.count > 0)
+  const profit = of('profit')
+  const missed = profit.flatMap((p) => {
+    const t = targetR(p)
+    const r = positionR(p)
+    return p.afterSweep === AFTER_TARGET && t !== null && r !== null ? [t - r] : []
+  })
 
   return {
-    stopSweeps: stops.length,
-    stopSweepsFilled: stops.filter(filled).length,
+    losses: losses.length,
+    lossesFilled: losses.filter(filled).length,
     sampleCount: sample.length,
     actualR: sample.reduce((s, x) => s + x.r, 0),
     buffers: results,
-    breakeven,
+    breakeven: byTrigger(of('breakeven')),
+    profit: {
+      trigger: '獲利出場',
+      count: profit.length,
+      filled: profit.filter((p) => !!p.afterSweep).length,
+      toTarget: profit.filter((p) => p.afterSweep === AFTER_TARGET).length,
+      avgMissedR: missed.length ? missed.reduce((s, x) => s + x, 0) / missed.length : null,
+    },
   }
 }
