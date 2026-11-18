@@ -72,7 +72,7 @@ export function PositionJournal({ position, options }: { position: Position; opt
         <FormRow label="評級" required hint={<GradeRules />}>
           <ChipSelect options={options.grades} value={draft.grade} onChange={(v) => set('grade', v)} />
         </FormRow>
-        <FormRow label="大週期方向">
+        <FormRow label="大週期方向" hint="大格局的趨勢，和評級規則裡的「大格局」看同一個週期。">
           <ChipSelect options={BIAS} value={draft.htfBias} onChange={(v) => set('htfBias', v)} />
         </FormRow>
         <FormRow label="進場觸發">

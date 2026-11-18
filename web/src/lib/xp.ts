@@ -224,7 +224,7 @@ function scorePosition(p: Position, earlier: Position[]): XpItem[] {
 }
 
 function hasJournalContent(e: JournalEntry): boolean {
-  return [e.bias, e.newsEvents, e.wentWell, e.wentWrong, e.tomorrow].some((v) => v != null && v.trim() !== '') ||
+  return [e.newsEvents, e.wentWell, e.wentWrong, e.tomorrow].some((v) => v != null && v.trim() !== '') ||
     e.sleep != null || e.energy != null || e.followedDailyRules != null
 }
 

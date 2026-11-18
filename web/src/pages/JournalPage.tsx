@@ -73,7 +73,6 @@ export function JournalPage() {
                   <>
                     <div className="flex items-center gap-2 text-xs">
                       <span className="rounded bg-profit/15 px-1.5 py-0.5 text-profit">已寫</span>
-                      {r.entry.bias && <span className="text-muted">方向 {r.entry.bias}</span>}
                       {r.entry.followedDailyRules === false && <span className="text-loss">違反規則</span>}
                     </div>
                     <p className="mt-1 truncate text-sm text-muted">

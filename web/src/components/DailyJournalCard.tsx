@@ -1,10 +1,8 @@
 import { useState } from 'react'
-import { ChipSelect, FormRow, Scale, TextArea, YesNo } from '@/components/form'
+import { FormRow, Scale, TextArea, YesNo } from '@/components/form'
 import { Button, Card, ErrorBox } from '@/components/ui'
 import { useJournal, useSaveJournal } from '@/lib/queries'
 import type { JournalEntry } from '@/lib/types'
-
-const BIAS = ['多', '空', '盤整']
 
 type Draft = Omit<JournalEntry, 'id' | 'updatedAt'>
 
@@ -12,7 +10,6 @@ function emptyEntry(date: string, accountName: string): Draft {
   return {
     date,
     accountName,
-    bias: null,
     newsEvents: null,
     sleep: null,
     energy: null,
@@ -81,9 +78,6 @@ function JournalForm({
         <section className="space-y-4">
           <h3 className="text-sm font-medium text-accent">盤前</h3>
           <div className="grid gap-4 md:grid-cols-2">
-            <FormRow label="當日方向">
-              <ChipSelect options={BIAS} value={draft.bias} onChange={(v) => set('bias', v)} />
-            </FormRow>
             <FormRow label="新聞事件">
               <TextArea rows={1} placeholder="CPI 20:30、FOMC…" {...text('newsEvents')} />
             </FormRow>

@@ -106,7 +106,6 @@ export interface JournalEntry {
   id?: string
   date: string
   accountName: string
-  bias: string | null
   newsEvents: string | null
   sleep: number | null
   energy: number | null

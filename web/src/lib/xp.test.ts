@@ -31,7 +31,7 @@ function pos(over: Partial<Position>): Position {
 
 const good = (over: Partial<Position> = {}) => pos({ grade: 'A', followedPlan: true, emotionBefore: 3, ...over })
 const entry = (over: Partial<JournalEntry>): JournalEntry => ({
-  date: '2026-10-20', accountName: 'A', bias: null, newsEvents: null,
+  date: '2026-10-20', accountName: 'A', newsEvents: null,
   sleep: null, energy: null, followedDailyRules: null, wentWell: null, wentWrong: null, tomorrow: null, ...over,
 })
 const positionTotals = (r: ReturnType<typeof computeProgress>) => r.ledger.filter((e) => e.position).map((e) => e.total)
